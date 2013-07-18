@@ -1,22 +1,35 @@
 package tempodb
 
-import ("fmt"
-        "time"
-        "net/http"
-        "net/url"
-        "log"
-        "encoding/json"
-        "io"
-        "regexp"
-        "bytes"
-        "io/ioutil"
-        )
+import (
+    "fmt"
+    "time"
+    "net/http"
+    "net/url"
+    "log"
+    "encoding/json"
+    "io"
+    "regexp"
+    "bytes"
+    "io/ioutil"
+    "errors"
+)
+
+var (
+    ERR_INVALID_KEY = errors.New("Key is not in the correct format")
+)
 
 type DataPoint struct{
     Ts time.Time
     V float64
 }
 
+type Remoter interface {
+    Do(*http.Request) (*http.Response, error)
+}
+
+type createSeriesRequest struct {
+    Key string
+}
 
 func (dp *DataPoint) ToJSON() string{
     //TODO: implement an actual JSON encoder instead of just string formatting
@@ -28,6 +41,7 @@ func (dp *DataPoint) ToJSON() string{
 }
 
 type DataSet struct {
+    Series Series
     Start time.Time
     End time.Time
     Data []DataPoint
@@ -48,13 +62,12 @@ type Client struct{
     Secret string
     Host string
     Port int
-    HTTPClient http.Client
-
+    Remoter Remoter
 }
 
 func NewClient() *Client {
     client := &Client{Host: "http://api.tempo-db.com", Port: 443}
-    client.HTTPClient = http.Client{}
+    client.Remoter = &http.Client{}
     return client
 }
 
@@ -67,14 +80,17 @@ type Filter struct{
 
 
 func (filter *Filter) AddId(id string) {
+
     filter.Ids = append(filter.Ids, id)
 }
 
 func (filter *Filter) AddKey(key string) {
+
     filter.Keys = append(filter.Keys, key)
 }
 
 func (filter *Filter) AddTag(tag string) {
+
     filter.Tags = append(filter.Tags, tag)
 }
 
@@ -82,7 +98,7 @@ func (client *Client) GetSeries(filter Filter) []Series{
 
     var URL string
     URL = client.buildUrl("/series?", "", filter.encodeUrl())
-    resp := client.makeRequest(URL, "GET", "")
+    resp := client.makeRequest(URL, "GET", []byte{})
 
     dec := json.NewDecoder(resp.Body)
     var series []Series
@@ -97,45 +113,46 @@ func (client *Client) GetSeries(filter Filter) []Series{
 }
 
 
-func (client *Client) CreateSeries(key string) Series{
-
+func (client *Client) CreateSeries(key string) (*Series, error) {
     matched, _ := regexp.MatchString(`^[a-zA-Z0-9\.:;\-_/\\ ]*$`, key)
 
-    if matched != false{
-        //regex didnt match
+    //TODO: figure out regex
+    if matched == false {
+        return nil, ERR_INVALID_KEY
     }
 
-    formString := `{"key":"` +  key + `"}"`
-    URL := client.buildUrl("/series/", "", "")
-    resp := client.makeRequest(URL, "POST", formString)
+    cr := &createSeriesRequest{key}
+    reqBody, err := json.Marshal(cr)
+    if err != nil {
+        return nil, err
+    }
+    url := client.buildUrl("/series/", "", "")
+    resp := client.makeRequest(url, "POST", reqBody)
 
-    bodyText, _ := ioutil.ReadAll(resp.Body)
-    fmt.Println(string(bodyText))
+    respBody, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        return nil, err
+    }
 
-    dec := json.NewDecoder(resp.Body)
     var series Series
-    if err := dec.Decode(&series); err == io.EOF {
-        fmt.Println("EOF")
-    } else if err != nil {
-        log.Fatal(err)
+    err = json.Unmarshal(respBody, &series)
+    if err != nil {
+        return nil, err
     }
 
-    return series //returns empty series? look into this
+    return &series, nil
+}
+ 
+
+func (client *Client) WriteId(id string, data []DataPoint) error {
+    return client.writeSeries("id", id, data)
 }
 
-func (client *Client) WriteId(id string, data []DataPoint) int{
-    statusCode := client.writeSeries("id", id, data)
-
-    return statusCode
+func (client *Client) WriteKey(key string, data []DataPoint) error {
+    return client.writeSeries("key", key, data)
 }
 
-func (client *Client) WriteKey(key string, data []DataPoint) int{
-    statusCode :=client.writeSeries("key", key, data)
-
-    return statusCode
-}
-
-func (client *Client) writeSeries(series_type string, series_val string, data []DataPoint) int{
+func (client *Client) writeSeries(series_type string, series_val string, data []DataPoint) error {
 
     endpointURL := fmt.Sprintf("/series/%s/%s/data/",series_type, url.QueryEscape(series_val))
 
@@ -148,12 +165,100 @@ func (client *Client) writeSeries(series_type string, series_val string, data []
         }
     }
     formString = formString + "]"
-
+    fmt.Println(formString)
 
     URL := client.buildUrl(endpointURL, "" , "")
-    resp := client.makeRequest(URL, "POST", formString)
+    resp := client.makeRequest(URL, "POST", []byte{})
 
-    return resp.StatusCode
+    statusCode := resp.StatusCode
+
+    if statusCode == http.StatusOK {
+        return nil
+    }
+
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        return err
+    }
+
+    return errors.New(string(body))
+}
+
+
+func (client *Client) readSeries(series_type string, series_val string, start time.Time, end time.Time) DataSet{
+    
+    endpointURL := fmt.Sprintf("/series/%s/%s/data/?",series_type, url.QueryEscape(series_val))
+    URL := client.buildUrl(endpointURL, client.encodeTimes(start,end), "")
+    resp := client.makeRequest(URL, "GET", []byte{})
+
+
+    bodyText, _ := ioutil.ReadAll(resp.Body)
+    fmt.Println(string(bodyText))
+    var dataset DataSet
+    err := json.Unmarshal(bodyText,&dataset)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    return dataset
+
+}
+
+func (client *Client) ReadKey(key string, start time.Time, end time.Time) DataSet{
+     dset := client.readSeries("key", key, start, end)
+     return dset
+}
+
+func (client *Client) ReadId(id string, start time.Time, end time.Time) DataSet{
+     dset := client.readSeries("id", id, start, end)
+     return dset
+}
+
+func (client *Client) IncrementId(id string, data []DataPoint){
+
+     client.incrementSeries("id", id,data)
+}
+
+func (client *Client) IncrementKey(key string, data []DataPoint){
+
+    client.incrementSeries("key", key ,data)
+}
+
+func (client *Client) incrementSeries(series_type string, series_val string, data []DataPoint){
+
+    endpointURL := fmt.Sprintf("/series/%s/%s/increment/?",series_type, url.QueryEscape(series_val))
+
+
+    //TODO: Actual Encoder, not just string formatting
+    formString := "["
+    for i, dp := range data{
+        formString = formString + dp.ToJSON()
+        if i != len(data) - 1 {
+            formString = formString + ","
+        }
+    }
+    formString = formString + "]"
+    fmt.Println(formString)
+
+    URL := client.buildUrl(endpointURL, "", "")
+    resp := client.makeRequest(URL, "POST", []byte{})
+    fmt.Println(resp.StatusCode)
+}
+
+func (client *Client) DeleteId(id string, start time.Time, end time.Time){
+    
+    client.deleteSeries("id", id, start, end)
+}
+
+func (client *Client) DeleteKey(key string, start time.Time, end time.Time){
+    client.deleteSeries("key", key, start, end)
+}
+
+func (client *Client) deleteSeries(series_type string, series_val string, start time.Time, end time.Time){
+    endpointURL := fmt.Sprintf("/series/%s/%s/data/?",series_type, url.QueryEscape(series_val))
+    URL := client.buildUrl(endpointURL, client.encodeTimes(start,end), "")
+    resp := client.makeRequest(URL, "DELETE", []byte{})
+    fmt.Println(resp.StatusCode)
 }
 
 func (client *Client) WriteBulk(ts time.Time) int{
@@ -163,13 +268,13 @@ func (client *Client) WriteBulk(ts time.Time) int{
 func (client *Client) Read(start time.Time, end time.Time, filter Filter) []DataSet{
     
     URL := client.buildUrl("/data?", client.encodeTimes(start, end), filter.encodeUrl())
-    resp := client.makeRequest(URL, "GET", "")
+    resp := client.makeRequest(URL, "GET", []byte{})
+    bodyText, _ := ioutil.ReadAll(resp.Body)
+    fmt.Println(string(bodyText))
 
-    dec := json.NewDecoder(resp.Body)
     var datasets []DataSet
-    if err := dec.Decode(&datasets); err == io.EOF {
-        fmt.Println("EOF")
-    } else if err != nil {
+    err := json.Unmarshal(bodyText,&datasets)
+    if err != nil {
         log.Fatal(err)
     }
     
@@ -216,10 +321,11 @@ func (filter *Filter) encodeUrl() string{
 }
 
 
-func (client *Client) makeRequest(builtURL string, method string, formString string) *http. Response{
-    req, err := http.NewRequest(method, builtURL, bytes.NewBufferString(formString))
+func (client *Client) makeRequest(builtURL string, method string, formString []byte) *http. Response{
+    fmt.Println(builtURL)
+    req, err := http.NewRequest(method, builtURL, bytes.NewReader(formString))
     req.SetBasicAuth(client.Key, client.Secret)
-    resp, err := client.HTTPClient.Do(req)
+    resp, err := client.Remoter.Do(req)
     if err != nil{
         log.Fatal(err)
     }
