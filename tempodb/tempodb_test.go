@@ -21,6 +21,18 @@ func NewTestClient(resp *http.Response) *Client {
 	return client
 }
 
+func TestRegexMatching(t *testing.T) {
+	client := NewTestClient(&http.Response{})
+	_, err := client.CreateSeries("#")
+	if err == nil {
+		t.Errorf("Should be invalid")
+	}
+	_, err = client.CreateSeries("validkey")
+	if err != nil {
+		t.Errorf("Should be valid")
+	}
+
+}
 func TestCreateSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
@@ -55,6 +67,4 @@ func TestCreateSeries(t *testing.T) {
 	if len(series.Tags) != 0 {
 		t.Errorf("Expected key to be %s but was %s", 0, len(series.Tags))
 	}
-
-
 }
