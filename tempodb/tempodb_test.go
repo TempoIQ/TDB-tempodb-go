@@ -4,6 +4,7 @@ import (
 	"testing"
 	"net/http"
 	"io/ioutil"
+	"io"
 	"strings"
 )
 
@@ -15,6 +16,10 @@ func (m *MockRemoter) Do(req *http.Request) (*http.Response, error) {
 	return m.nextResponse, nil
 }
 
+func makeBody(body string) io.ReadCloser {
+	return ioutil.NopCloser(strings.NewReader(body))
+}
+
 func NewTestClient(resp *http.Response) *Client {
 	client := NewClient()
 	client.Remoter = &MockRemoter{resp}
@@ -22,22 +27,26 @@ func NewTestClient(resp *http.Response) *Client {
 }
 
 func TestRegexMatching(t *testing.T) {
-	client := NewTestClient(&http.Response{})
+	client := NewTestClient(&http.Response{StatusCode: 200, Body: makeBody(`{"id":"0e3178aea7964c4cb1a15db1e80e2a7f","key":"validkey","name":"","tags":[],"attributes":{}}`)})
 	_, err := client.CreateSeries("#")
 	if err == nil {
 		t.Errorf("Should be invalid")
+
+		return
 	}
 	_, err = client.CreateSeries("validkey")
 	if err != nil {
-		t.Errorf("Should be valid")
-	}
+		t.Error(err)
 
+		return
+	}
 }
+
 func TestCreateSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
 		Status: "200 OK",
-		Body: ioutil.NopCloser(strings.NewReader(`{"id":"0e3178aea7964c4cb1a15db1e80e2a7f","key":"key2","name":"","tags":[],"attributes":{}}`)),
+		Body: makeBody(`{"id":"0e3178aea7964c4cb1a15db1e80e2a7f","key":"key2","name":"","tags":[],"attributes":{}}`),
 	}
 	client := NewTestClient(resp)
 	expectedKey := "key2"

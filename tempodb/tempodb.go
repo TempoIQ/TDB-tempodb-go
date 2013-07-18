@@ -116,7 +116,6 @@ func (client *Client) GetSeries(filter Filter) []Series{
 func (client *Client) CreateSeries(key string) (*Series, error) {
     matched, _ := regexp.MatchString(`^[a-zA-Z0-9\.:;\-_/\\ ]*$`, key)
 
-    //TODO: figure out regex
     if matched == false {
         return nil, ERR_INVALID_KEY
     }
@@ -322,7 +321,6 @@ func (filter *Filter) encodeUrl() string{
 
 
 func (client *Client) makeRequest(builtURL string, method string, formString []byte) *http. Response{
-    fmt.Println(builtURL)
     req, err := http.NewRequest(method, builtURL, bytes.NewReader(formString))
     req.SetBasicAuth(client.Key, client.Secret)
     resp, err := client.Remoter.Do(req)
