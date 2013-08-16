@@ -19,6 +19,7 @@ var (
 )
 
 const (
+	API_HOSTNAME = "https://api.tempo-db.com"
 	ISO8601_FMT = "2006-01-02T15:04:05Z0700"
 )
 
@@ -77,17 +78,17 @@ type Client struct {
 	Remoter Remoter
 }
 
-func NewClient() *Client {
-	client := &Client{Host: "http://api.tempo-db.com", Port: 443}
-	client.Remoter = &http.Client{}
-	return client
-}
-
 type Filter struct {
 	Ids        []string
 	Keys       []string
 	Tags       []string
 	Attributes map[string]string
+}
+
+func NewClient() *Client {
+	client := &Client{Host: API_HOSTNAME, Port: 443}
+	client.Remoter = &http.Client{}
+	return client
 }
 
 func (filter *Filter) AddId(id string) {
