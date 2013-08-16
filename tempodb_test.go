@@ -61,6 +61,27 @@ func TestRegexMatching(t *testing.T) {
 	}
 }
 
+func TestGetSeries(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status: "200 OK",
+		Body: makeBody(testFixture("get_series.json")),
+	}
+	client, _ := NewTestClient(resp)
+	series, err := client.GetSeries(&Filter{})
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	expectedLength := 7
+	if len(series) != expectedLength {
+		t.Errorf("Expected length to be %d, but was %d", expectedLength, len(series))
+
+		return
+	}
+}
+
 func TestCreateSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,

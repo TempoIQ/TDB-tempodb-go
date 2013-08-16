@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -110,21 +109,22 @@ func (filter *Filter) AddTag(tag string) {
 	filter.Tags = append(filter.Tags, tag)
 }
 
-func (client *Client) GetSeries(filter Filter) []Series {
+func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	var URL string
 	URL = client.buildUrl("/series?", "", filter.encodeUrl())
 	resp := client.makeRequest(URL, "GET", []byte{})
 
-	dec := json.NewDecoder(resp.Body)
-	var series []Series
-
-	if err := dec.Decode(&series); err == io.EOF {
-		fmt.Println("EOF")
-	} else if err != nil {
-		log.Fatal(err)
+	var series []*Series
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(b, &series)
+	if err != nil {
+		return nil, err
 	}
 
-	return series
+	return series, nil
 }
 
 func (client *Client) CreateSeries(key string) (*Series, error) {
