@@ -370,3 +370,37 @@ func TestIncrementBulk(t *testing.T) {
 		t.Errorf("Expected body to be %s but was %s", expectedBody, string(lastBody))
 	}
 }
+
+func TestDeleteKey(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status: "200 OK",
+		Body: makeBody(""),
+	}
+	client, _ := NewTestClient(resp)
+	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+	err := client.DeleteKey("key1", startTime, endTime)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+}
+
+func TestDeleteId(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status: "200 OK",
+		Body: makeBody(""),
+	}
+	client, _ := NewTestClient(resp)
+	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+	err := client.DeleteId("01868c1a2aaf416ea6cd8edd65e7a4b8", startTime, endTime)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+}
