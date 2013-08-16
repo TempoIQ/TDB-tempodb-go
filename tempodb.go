@@ -114,11 +114,14 @@ func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	URL = client.buildUrl("/series?", "", filter.encodeUrl())
 	resp := client.makeRequest(URL, "GET", []byte{})
 
-	var series []*Series
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != 200 {
+		return nil, httpError(resp.Status, b)
+	}
+	var series []*Series
 	err = json.Unmarshal(b, &series)
 	if err != nil {
 		return nil, err
@@ -318,4 +321,13 @@ func (client *Client) makeRequest(builtURL string, method string, formString []b
 	}
 
 	return resp
+}
+
+func httpError(status string, body []byte) error {
+	length := len(body)
+	if length == 0 || length == 1 {
+		return errors.New(status)
+	}
+
+	return errors.New(fmt.Sprintf("%s: %s", status, string(body)))
 }
