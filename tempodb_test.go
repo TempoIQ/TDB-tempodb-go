@@ -68,7 +68,7 @@ func TestGetSeries(t *testing.T) {
 		Body:       makeBody(testFixture("get_series.json")),
 	}
 	client, _ := NewTestClient(resp)
-	series, err := client.GetSeries(&Filter{})
+	series, err := client.GetSeries(NullFilter)
 	if err != nil {
 		t.Error(err)
 
@@ -170,6 +170,34 @@ func TestReadId(t *testing.T) {
 		t.Errorf("Expected key to be %s but was %s", key, dataset.Series.Key)
 	}
 
+}
+
+func TestRead(t *testing.T) {
+	body := makeBody(testFixture("read.json"))
+	resp := &http.Response{
+		StatusCode: 200,
+		Status: "200 OK",
+		Body: body,
+	}
+
+	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+
+	client, _ := NewTestClient(resp)
+	filter := NewFilter()
+	filter.AddAttribute("thermostat", "1")
+	datasets, err := client.Read(startTime, endTime, filter)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	expectedLength := 2
+	if len(datasets) != expectedLength {
+		t.Errorf("Expected length of datasets to be %d but was %d", expectedLength, len(datasets))
+
+		return
+	}
 }
 
 func TestWriteKey(t *testing.T) {

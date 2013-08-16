@@ -25,6 +25,7 @@ const (
 
 var (
 	USER_AGENT = fmt.Sprintf("%s/%s", "tempodb-go", VERSION)
+	NullFilter = NewFilter()
 )
 
 type TempoTime struct {
@@ -81,6 +82,15 @@ func NewClient() *Client {
 	return client
 }
 
+func NewFilter() *Filter {
+	return &Filter{
+		Ids: make([]string, 0),
+		Keys: make([]string, 0),
+		Tags: make([]string, 0),
+		Attributes: make(map[string]string),
+	}
+}
+
 func (tt *TempoTime) MarshalJSON() ([]byte, error) {
 	formatted := fmt.Sprintf("\"%s\"", tt.Time.Format(ISO8601_FMT))
 	return []byte(formatted), nil
@@ -114,10 +124,13 @@ func (filter *Filter) AddTag(tag string) {
 	filter.Tags = append(filter.Tags, tag)
 }
 
+func (filter *Filter) AddAttribute(key string, value string) {
+	filter.Attributes[key] = value
+}
+
 func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
-	var URL string
-	URL = client.buildUrl("/series?", "", filter.encodeUrl())
-	resp := client.makeRequest(URL, "GET", []byte{})
+	url := client.buildUrl("/series?", "", filter.encodeUrl())
+	resp := client.makeRequest(url, "GET", []byte{})
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -176,19 +189,24 @@ func (client *Client) WriteKey(key string, data []*DataPoint) error {
 	return client.writeSeries("key", key, data)
 }
 
-func (client *Client) Read(start time.Time, end time.Time, filter Filter) []DataSet {
-	URL := client.buildUrl("/data?", client.encodeTimes(start, end), filter.encodeUrl())
-	resp := client.makeRequest(URL, "GET", []byte{})
-	bodyText, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(bodyText))
-
-	var datasets []DataSet
-	err := json.Unmarshal(bodyText, &datasets)
+func (client *Client) Read(start time.Time, end time.Time, filter *Filter) ([]*DataSet, error) {
+	url := client.buildUrl("/data?", client.encodeTimes(start, end), filter.encodeUrl())
+	resp := client.makeRequest(url, "GET", []byte{})
+	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, httpError(resp.Status, b)
 	}
 
-	return datasets
+	var datasets []*DataSet
+	err = json.Unmarshal(b, &datasets)
+	if err != nil {
+		return nil, err
+	}
+
+	return datasets, nil
 }
 
 func (client *Client) ReadKey(key string, start time.Time, end time.Time) (*DataSet, error) {
@@ -296,11 +314,10 @@ func (client *Client) buildUrl(endpoint string, times string, params_str string)
 
 func (client *Client) encodeTimes(start time.Time, end time.Time) string {
 	v := url.Values{}
-	const layout = "2006-01-02T15:04:05.000-0700"
-	start_str := start.Format(layout)
-	end_str := end.Format(layout)
-	v.Add("start", start_str)
-	v.Add("end", end_str)
+	startStr := start.Format(ISO8601_FMT)
+	endStr := end.Format(ISO8601_FMT)
+	v.Add("start", startStr)
+	v.Add("end", endStr)
 
 	return v.Encode()
 }
