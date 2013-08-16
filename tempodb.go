@@ -17,9 +17,10 @@ var (
 )
 
 const (
-	API_HOSTNAME = "https://api.tempo-db.com"
-	ISO8601_FMT  = "2006-01-02T15:04:05.000Z0700"
-	VERSION      = 0.1
+	API_HOSTNAME    = "https://api.tempo-db.com"
+	API_SECURE_PORT = 443
+	ISO8601_FMT     = "2006-01-02T15:04:05.000Z0700"
+	VERSION         = 0.1
 )
 
 var (
@@ -94,8 +95,8 @@ type Filter struct {
 	Attributes map[string]string
 }
 
-func NewClient() *Client {
-	client := &Client{Host: API_HOSTNAME, Port: 443}
+func NewClient(key string, secret string) *Client {
+	client := &Client{Key: key, Secret: secret, Host: API_HOSTNAME, Port: API_SECURE_PORT}
 	client.Remoter = &http.Client{}
 	return client
 }

@@ -40,7 +40,7 @@ func testFixture(name string) string {
 }
 
 func NewTestClient(resp *http.Response) (*Client, *MockRemoter) {
-	client := NewClient()
+	client := NewClient("key", "secret")
 	remoter := &MockRemoter{resp, nil}
 	client.Remoter = remoter
 	return client, remoter
