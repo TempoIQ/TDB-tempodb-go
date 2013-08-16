@@ -123,16 +123,16 @@ func TestUpdateSeries(t *testing.T) {
 	body := makeBody(testFixture("update_series.json"))
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: body,
+		Status:     "200 OK",
+		Body:       body,
 	}
 
 	client, _ := NewTestClient(resp)
 	series := &Series{
-		Id: "0e3178aea7964c4cb1a15db1e80e2a7f",
-		Key: "key2",
-		Name: "my_series",
-		Tags: make([]string, 0),
+		Id:         "0e3178aea7964c4cb1a15db1e80e2a7f",
+		Key:        "key2",
+		Name:       "my_series",
+		Tags:       make([]string, 0),
 		Attributes: make(map[string]string),
 	}
 	responseSeries, err := client.UpdateSeries(series)
@@ -407,8 +407,8 @@ func TestIncrementBulk(t *testing.T) {
 func TestDeleteKey(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: makeBody(""),
+		Status:     "200 OK",
+		Body:       makeBody(""),
 	}
 	client, _ := NewTestClient(resp)
 	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -424,8 +424,8 @@ func TestDeleteKey(t *testing.T) {
 func TestDeleteId(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: makeBody(""),
+		Status:     "200 OK",
+		Body:       makeBody(""),
 	}
 	client, _ := NewTestClient(resp)
 	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -441,8 +441,8 @@ func TestDeleteId(t *testing.T) {
 func TestWriteBulk(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: makeBody(""),
+		Status:     "200 OK",
+		Body:       makeBody(""),
 	}
 	client, remoter := NewTestClient(resp)
 	dataset := []BulkPoint{
