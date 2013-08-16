@@ -1,11 +1,11 @@
-package tempodb 
+package tempodb
 
 import (
-	"testing"
-	"net/http"
-	"io/ioutil"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"strings"
+	"testing"
 	"time"
 )
 
@@ -46,8 +46,8 @@ func TestRegexMatching(t *testing.T) {
 func TestCreateSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: makeBody(`{"id":"0e3178aea7964c4cb1a15db1e80e2a7f","key":"key2","name":"","tags":[],"attributes":{}}`),
+		Status:     "200 OK",
+		Body:       makeBody(`{"id":"0e3178aea7964c4cb1a15db1e80e2a7f","key":"key2","name":"","tags":[],"attributes":{}}`),
 	}
 	client := NewTestClient(resp)
 	expectedKey := "key2"
@@ -79,8 +79,8 @@ func TestCreateSeries(t *testing.T) {
 	}
 }
 
-func TestReadKey(t *testing.T){
-	    body := makeBody(`{
+func TestReadKey(t *testing.T) {
+	body := makeBody(`{
 							"series":{
 							"id":"01868c1a2aaf416ea6cd8edd65e7a4b8",
 							"key":"key1",
@@ -118,20 +118,20 @@ func TestReadKey(t *testing.T){
 
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: body,
+		Status:     "200 OK",
+		Body:       body,
 	}
 
 	client := NewTestClient(resp)
 
-	start_time :=  time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
-    end_time := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+	start_time := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	end_time := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
 	key := "key1"
 	dataset, err := client.ReadKey(key, start_time, end_time)
 
 	if err != nil {
 		t.Error(err)
-		
+
 		return
 	}
 
@@ -139,11 +139,8 @@ func TestReadKey(t *testing.T){
 		t.Errorf("Expected key to be %s but was %s", dataset.Series.Key, key)
 	}
 
-
 }
 
-func TestWriteKey(t *testing.T){
-	
+func TestWriteKey(t *testing.T) {
 
 }
-
