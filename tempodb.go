@@ -47,13 +47,13 @@ type BulkPoint interface {
 }
 
 type BulkKeyPoint struct {
-	Key string `json:"key"`
-	V   float64    `json:"v"`
+	Key string  `json:"key"`
+	V   float64 `json:"v"`
 }
 
 type BulkIdPoint struct {
-	Id string `json:"id"`
-	V  float64    `json:"v"`
+	Id string  `json:"id"`
+	V  float64 `json:"v"`
 }
 
 type Remoter interface {
@@ -65,19 +65,19 @@ type createSeriesRequest struct {
 }
 
 type DataSet struct {
-	Series  Series
-	Start   TempoTime
-	End     TempoTime
-	Data    []*DataPoint
-	Summary map[string]float64
+	Series  Series             `json:"series"`
+	Start   TempoTime          `json:"start"`
+	End     TempoTime          `json:"end"`
+	Data    []*DataPoint       `json:"data"`
+	Summary map[string]float64 `json:"summary"`
 }
 
 type Series struct {
-	Id         string
-	Key        string
-	Name       string
-	Attributes map[string]string
-	Tags       []string
+	Id         string            `json:"id"`
+	Key        string            `json:"key"`
+	Name       string            `json:"name"`
+	Attributes map[string]string `json:"attributes"`
+	Tags       []string          `json:"tags"`
 }
 
 type Client struct {
@@ -219,7 +219,7 @@ func (client *Client) WriteKey(key string, data []*DataPoint) error {
 func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 	url := client.buildUrl("/data", "", "")
 	dataSet := &BulkDataSet{
-		Ts: &TempoTime{Time: ts},
+		Ts:   &TempoTime{Time: ts},
 		Data: data,
 	}
 	b, err := json.Marshal(dataSet)
@@ -278,7 +278,7 @@ func (client *Client) IncrementKey(key string, data []*DataPoint) error {
 func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 	url := client.buildUrl("/increment/", "", "")
 	dataSet := &BulkDataSet{
-		Ts: &TempoTime{Time: ts},
+		Ts:   &TempoTime{Time: ts},
 		Data: data,
 	}
 	b, err := json.Marshal(dataSet)
