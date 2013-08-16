@@ -20,6 +20,11 @@ var (
 const (
 	API_HOSTNAME = "https://api.tempo-db.com"
 	ISO8601_FMT  = "2006-01-02T15:04:05.000Z0700"
+	VERSION = 0.1
+)
+
+var (
+	USER_AGENT = fmt.Sprintf("%s/%s", "tempodb-go", VERSION)
 )
 
 type TempoTime struct {
@@ -320,6 +325,7 @@ func (filter *Filter) encodeUrl() string {
 func (client *Client) makeRequest(builtURL string, method string, formString []byte) *http.Response {
 	req, err := http.NewRequest(method, builtURL, bytes.NewReader(formString))
 	req.SetBasicAuth(client.Key, client.Secret)
+	req.Header["User-Agent"] = []string{USER_AGENT}
 	resp, err := client.Remoter.Do(req)
 	if err != nil {
 		log.Fatal(err)
