@@ -79,22 +79,18 @@ type Filter struct {
 }
 
 func (filter *Filter) AddId(id string) {
-
 	filter.Ids = append(filter.Ids, id)
 }
 
 func (filter *Filter) AddKey(key string) {
-
 	filter.Keys = append(filter.Keys, key)
 }
 
 func (filter *Filter) AddTag(tag string) {
-
 	filter.Tags = append(filter.Tags, tag)
 }
 
 func (client *Client) GetSeries(filter Filter) []Series {
-
 	var URL string
 	URL = client.buildUrl("/series?", "", filter.encodeUrl())
 	resp := client.makeRequest(URL, "GET", []byte{})
@@ -149,7 +145,6 @@ func (client *Client) WriteKey(key string, data []DataPoint) error {
 }
 
 func (client *Client) writeSeries(series_type string, series_val string, data []DataPoint) error {
-
 	endpointURL := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(series_val))
 
 	//TODO: Actual Encoder, not just string formatting
@@ -181,7 +176,6 @@ func (client *Client) writeSeries(series_type string, series_val string, data []
 }
 
 func (client *Client) readSeries(series_type string, series_val string, start time.Time, end time.Time) (*DataSet, error) {
-
 	endpointURL := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(series_val))
 	URL := client.buildUrl(endpointURL, client.encodeTimes(start, end), "")
 	resp := client.makeRequest(URL, "GET", []byte{})
@@ -205,21 +199,17 @@ func (client *Client) readSeries(series_type string, series_val string, start ti
 
 func (client *Client) ReadKey(key string, start time.Time, end time.Time) (*DataSet, error) {
 	return client.readSeries("key", key, start, end)
-
 }
 
 func (client *Client) ReadId(id string, start time.Time, end time.Time) (*DataSet, error) {
 	return client.readSeries("id", id, start, end)
-
 }
 
 func (client *Client) IncrementId(id string, data []DataPoint) {
-
 	client.incrementSeries("id", id, data)
 }
 
 func (client *Client) IncrementKey(key string, data []DataPoint) {
-
 	client.incrementSeries("key", key, data)
 }
 
@@ -243,7 +233,6 @@ func (client *Client) incrementSeries(series_type string, series_val string, dat
 }
 
 func (client *Client) DeleteId(id string, start time.Time, end time.Time) {
-
 	client.deleteSeries("id", id, start, end)
 }
 
@@ -263,7 +252,6 @@ func (client *Client) WriteBulk(ts time.Time) int {
 }
 
 func (client *Client) Read(start time.Time, end time.Time, filter Filter) []DataSet {
-
 	URL := client.buildUrl("/data?", client.encodeTimes(start, end), filter.encodeUrl())
 	resp := client.makeRequest(URL, "GET", []byte{})
 	bodyText, _ := ioutil.ReadAll(resp.Body)
@@ -283,8 +271,8 @@ func (client *Client) buildUrl(endpoint string, times string, params_str string)
 	if times == "" {
 		return client.Host + "/v1" + endpoint + params_str
 	}
-	return client.Host + "/v1" + endpoint + times + "&" + params_str
 
+	return client.Host + "/v1" + endpoint + times + "&" + params_str
 }
 
 func (client *Client) encodeTimes(start time.Time, end time.Time) string {
@@ -294,12 +282,12 @@ func (client *Client) encodeTimes(start time.Time, end time.Time) string {
 	end_str := end.Format(layout)
 	v.Add("start", start_str)
 	v.Add("end", end_str)
+
 	return v.Encode()
 }
 
 //TODO: add attributes, tags
 func (filter *Filter) encodeUrl() string {
-
 	v := url.Values{}
 	if len(filter.Ids) != 0 {
 		for _, id := range filter.Ids {
@@ -311,8 +299,8 @@ func (filter *Filter) encodeUrl() string {
 			v.Add("key", key)
 		}
 	}
-	return v.Encode()
 
+	return v.Encode()
 }
 
 func (client *Client) makeRequest(builtURL string, method string, formString []byte) *http.Response {
@@ -324,5 +312,4 @@ func (client *Client) makeRequest(builtURL string, method string, formString []b
 	}
 
 	return resp
-
 }
