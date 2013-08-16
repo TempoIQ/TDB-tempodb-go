@@ -43,17 +43,17 @@ type BulkDataSet struct {
 }
 
 type BulkPoint interface {
-	GetValue() int
+	GetValue() float64
 }
 
 type BulkKeyPoint struct {
 	Key string `json:"key"`
-	V   int    `json:"v"`
+	V   float64    `json:"v"`
 }
 
 type BulkIdPoint struct {
 	Id string `json:"id"`
-	V  int    `json:"v"`
+	V  float64    `json:"v"`
 }
 
 type Remoter interface {
@@ -147,11 +147,11 @@ func (filter *Filter) AddAttribute(key string, value string) {
 	filter.Attributes[key] = value
 }
 
-func (bp *BulkKeyPoint) GetValue() int {
+func (bp *BulkKeyPoint) GetValue() float64 {
 	return bp.V
 }
 
-func (bp *BulkIdPoint) GetValue() int {
+func (bp *BulkIdPoint) GetValue() float64 {
 	return bp.V
 }
 
@@ -214,6 +214,29 @@ func (client *Client) WriteId(id string, data []*DataPoint) error {
 
 func (client *Client) WriteKey(key string, data []*DataPoint) error {
 	return client.writeSeries("key", key, data)
+}
+
+func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
+	url := client.buildUrl("/data", "", "")
+	dataSet := &BulkDataSet{
+		Ts: &TempoTime{Time: ts},
+		Data: data,
+	}
+	b, err := json.Marshal(dataSet)
+	if err != nil {
+		return err
+	}
+	resp := client.makeRequest(url, "POST", b)
+	if resp.StatusCode != http.StatusOK {
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		return httpError(resp.Status, respBody)
+	}
+
+	return nil
 }
 
 func (client *Client) Read(start time.Time, end time.Time, filter *Filter) ([]*DataSet, error) {
@@ -281,10 +304,6 @@ func (client *Client) DeleteId(id string, start time.Time, end time.Time) error 
 
 func (client *Client) DeleteKey(key string, start time.Time, end time.Time) error {
 	return client.deleteSeries("key", key, start, end)
-}
-
-func (client *Client) WriteBulk(ts time.Time) int {
-	return 0
 }
 
 func (client *Client) readSeries(series_type string, series_val string, start time.Time, end time.Time) (*DataSet, error) {

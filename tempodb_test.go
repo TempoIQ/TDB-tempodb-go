@@ -404,3 +404,39 @@ func TestDeleteId(t *testing.T) {
 		return
 	}
 }
+
+func TestWriteBulk(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status: "200 OK",
+		Body: makeBody(""),
+	}
+	client, remoter := NewTestClient(resp)
+	dataset := []BulkPoint{
+		&BulkKeyPoint{
+			Key: "your-custom-key",
+			V:   1.23,
+		},
+		&BulkIdPoint{
+			Id: "01868c1a2aaf416ea6cd8edd65e7a4b8",
+			V:  3.14,
+		},
+	}
+	err := client.WriteBulk(time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC), dataset)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	lastRequest := remoter.LastRequest()
+	lastBody, err := ioutil.ReadAll(lastRequest.Body)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	expectedBody := `{"t":"2012-01-01T00:00:00.000Z","data":[{"key":"your-custom-key","v":1.23},{"id":"01868c1a2aaf416ea6cd8edd65e7a4b8","v":3.14}]}`
+	if string(lastBody) != expectedBody {
+		t.Errorf("Expected body to be %s but was %s", expectedBody, string(lastBody))
+	}
+}
