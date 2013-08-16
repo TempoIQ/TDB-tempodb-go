@@ -330,9 +330,9 @@ func (client *Client) DeleteKey(key string, start time.Time, end time.Time) erro
 	return client.deleteSeries("key", key, start, end)
 }
 
-func (client *Client) readSeries(series_type string, series_val string, start time.Time, end time.Time) (*DataSet, error) {
-	endpointURL := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(series_val))
-	url := client.buildUrl(endpointURL, client.encodeTimes(start, end), "")
+func (client *Client) readSeries(series_type string, seriesVal string, start time.Time, end time.Time) (*DataSet, error) {
+	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
+	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end), "")
 	resp := client.makeRequest(url, "GET", []byte{})
 
 	b, err := ioutil.ReadAll(resp.Body)
@@ -354,8 +354,8 @@ func (client *Client) readSeries(series_type string, series_val string, start ti
 	return &dataset, nil
 }
 
-func (client *Client) writeSeries(series_type string, series_val string, data []*DataPoint) error {
-	endpointUrl := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(series_val))
+func (client *Client) writeSeries(series_type string, seriesVal string, data []*DataPoint) error {
+	endpointUrl := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(seriesVal))
 
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -376,13 +376,13 @@ func (client *Client) writeSeries(series_type string, series_val string, data []
 	return nil
 }
 
-func (client *Client) incrementSeries(series_type string, series_val string, data []*DataPoint) error {
-	endpointURL := fmt.Sprintf("/series/%s/%s/increment/?", series_type, url.QueryEscape(series_val))
+func (client *Client) incrementSeries(series_type string, seriesVal string, data []*DataPoint) error {
+	endpointUrl := fmt.Sprintf("/series/%s/%s/increment/?", series_type, url.QueryEscape(seriesVal))
 	b, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-	url := client.buildUrl(endpointURL, "", "")
+	url := client.buildUrl(endpointUrl, "", "")
 	resp := client.makeRequest(url, "POST", b)
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := ioutil.ReadAll(resp.Body)
@@ -396,20 +396,20 @@ func (client *Client) incrementSeries(series_type string, series_val string, dat
 	return nil
 }
 
-func (client *Client) deleteSeries(series_type string, series_val string, start time.Time, end time.Time) error {
-	endpointURL := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(series_val))
-	URL := client.buildUrl(endpointURL, client.encodeTimes(start, end), "")
+func (client *Client) deleteSeries(series_type string, seriesVal string, start time.Time, end time.Time) error {
+	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
+	URL := client.buildUrl(endpointUrl, client.encodeTimes(start, end), "")
 	_ = client.makeRequest(URL, "DELETE", []byte{})
 
 	return nil
 }
 
-func (client *Client) buildUrl(endpoint string, times string, params_str string) string {
+func (client *Client) buildUrl(endpoint string, times string, paramsStr string) string {
 	if times == "" {
-		return client.Host + "/v1" + endpoint + params_str
+		return client.Host + "/v1" + endpoint + paramsStr
 	}
 
-	return client.Host + "/v1" + endpoint + times + "&" + params_str
+	return client.Host + "/v1" + endpoint + times + "&" + paramsStr
 }
 
 func (client *Client) encodeTimes(start time.Time, end time.Time) string {
