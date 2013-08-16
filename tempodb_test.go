@@ -176,8 +176,8 @@ func TestRead(t *testing.T) {
 	body := makeBody(testFixture("read.json"))
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: body,
+		Status:     "200 OK",
+		Body:       body,
 	}
 
 	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -281,5 +281,92 @@ func TestWriteId(t *testing.T) {
 		t.Error(err)
 
 		return
+	}
+}
+
+func TestIncrementId(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       makeBody(""),
+	}
+	client, _ := NewTestClient(resp)
+	datapoints := []*DataPoint{
+		&DataPoint{
+			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			V:  1,
+		},
+		&DataPoint{
+			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
+			V:  3,
+		},
+	}
+	err := client.IncrementId("0aeef415ce734b02af5325f6ad977e26", datapoints)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+}
+
+func TestIncrementKey(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       makeBody(""),
+	}
+	client, _ := NewTestClient(resp)
+	datapoints := []*DataPoint{
+		&DataPoint{
+			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			V:  1,
+		},
+		&DataPoint{
+			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
+			V:  3,
+		},
+	}
+	err := client.IncrementKey("key1", datapoints)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+}
+
+func TestIncrementBulk(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       makeBody(""),
+	}
+
+	client, remoter := NewTestClient(resp)
+	dataset := []BulkPoint{
+		&BulkKeyPoint{
+			Key: "your-custom-key",
+			V:   1,
+		},
+		&BulkIdPoint{
+			Id: "01868c1a2aaf416ea6cd8edd65e7a4b8",
+			V:  4,
+		},
+	}
+	err := client.IncrementBulk(time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC), dataset)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	lastRequest := remoter.LastRequest()
+	lastBody, err := ioutil.ReadAll(lastRequest.Body)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	expectedBody := `{"t":"2012-01-01T00:00:00.000Z","data":[{"key":"your-custom-key","v":1},{"id":"01868c1a2aaf416ea6cd8edd65e7a4b8","v":4}]}`
+	if string(lastBody) != expectedBody {
+		t.Errorf("Expected body to be %s but was %s", expectedBody, string(lastBody))
 	}
 }

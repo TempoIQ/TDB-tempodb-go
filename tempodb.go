@@ -20,7 +20,7 @@ var (
 const (
 	API_HOSTNAME = "https://api.tempo-db.com"
 	ISO8601_FMT  = "2006-01-02T15:04:05.000Z0700"
-	VERSION = 0.1
+	VERSION      = 0.1
 )
 
 var (
@@ -35,6 +35,25 @@ type TempoTime struct {
 type DataPoint struct {
 	Ts *TempoTime `json:"t"`
 	V  float64    `json:"v"`
+}
+
+type BulkDataSet struct {
+	Ts   *TempoTime  `json:"t"`
+	Data []BulkPoint `json:"data"`
+}
+
+type BulkPoint interface {
+	GetValue() int
+}
+
+type BulkKeyPoint struct {
+	Key string `json:"key"`
+	V   int    `json:"v"`
+}
+
+type BulkIdPoint struct {
+	Id string `json:"id"`
+	V  int    `json:"v"`
 }
 
 type Remoter interface {
@@ -84,9 +103,9 @@ func NewClient() *Client {
 
 func NewFilter() *Filter {
 	return &Filter{
-		Ids: make([]string, 0),
-		Keys: make([]string, 0),
-		Tags: make([]string, 0),
+		Ids:        make([]string, 0),
+		Keys:       make([]string, 0),
+		Tags:       make([]string, 0),
 		Attributes: make(map[string]string),
 	}
 }
@@ -126,6 +145,14 @@ func (filter *Filter) AddTag(tag string) {
 
 func (filter *Filter) AddAttribute(key string, value string) {
 	filter.Attributes[key] = value
+}
+
+func (bp *BulkKeyPoint) GetValue() int {
+	return bp.V
+}
+
+func (bp *BulkIdPoint) GetValue() int {
+	return bp.V
 }
 
 func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
@@ -225,6 +252,29 @@ func (client *Client) IncrementKey(key string, data []*DataPoint) error {
 	return client.incrementSeries("key", key, data)
 }
 
+func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
+	url := client.buildUrl("/increment/", "", "")
+	dataSet := &BulkDataSet{
+		Ts: &TempoTime{Time: ts},
+		Data: data,
+	}
+	b, err := json.Marshal(dataSet)
+	if err != nil {
+		return err
+	}
+	resp := client.makeRequest(url, "POST", b)
+	if resp.StatusCode != http.StatusOK {
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		return httpError(resp.Status, respBody)
+	}
+
+	return nil
+}
+
 func (client *Client) DeleteId(id string, start time.Time, end time.Time) error {
 	return client.deleteSeries("id", id, start, end)
 }
@@ -289,9 +339,16 @@ func (client *Client) incrementSeries(series_type string, series_val string, dat
 	if err != nil {
 		return err
 	}
-	URL := client.buildUrl(endpointURL, "", "")
-	_ = client.makeRequest(URL, "POST", b)
-	// TODO: Handle non 200
+	url := client.buildUrl(endpointURL, "", "")
+	resp := client.makeRequest(url, "POST", b)
+	if resp.StatusCode != http.StatusOK {
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		return httpError(resp.Status, respBody)
+	}
 
 	return nil
 }
