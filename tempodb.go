@@ -20,7 +20,7 @@ var (
 
 const (
 	API_HOSTNAME = "https://api.tempo-db.com"
-	ISO8601_FMT = "2006-01-02T15:04:05Z0700"
+	ISO8601_FMT  = "2006-01-02T15:04:05Z0700"
 )
 
 type TempoTime time.Time
