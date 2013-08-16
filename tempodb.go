@@ -53,13 +53,6 @@ func (tt *TempoTime) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (dp *DataPoint) ToJSON() string {
-	//TODO: implement an actual JSON encoder instead of just string formatting
-
-	return "Implement me"
-
-}
-
 type DataSet struct {
 	Series  Series
 	Start   TempoTime
