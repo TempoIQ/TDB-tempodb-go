@@ -1,6 +1,7 @@
 package tempodb
 
 import (
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,10 +17,16 @@ const (
 
 type MockRemoter struct {
 	nextResponse *http.Response
+	lastRequest *http.Request
 }
 
 func (m *MockRemoter) Do(req *http.Request) (*http.Response, error) {
+	m.lastRequest = req
 	return m.nextResponse, nil
+}
+
+func (m *MockRemoter) LastRequest() *http.Request {
+	return m.lastRequest
 }
 
 func makeBody(body string) io.ReadCloser {
@@ -31,14 +38,15 @@ func testFixture(name string) string {
 	return string(b)
 }
 
-func NewTestClient(resp *http.Response) *Client {
+func NewTestClient(resp *http.Response) (*Client, *MockRemoter) {
 	client := NewClient()
-	client.Remoter = &MockRemoter{resp}
-	return client
+	remoter := &MockRemoter{resp, nil}
+	client.Remoter = remoter
+	return client, remoter
 }
 
 func TestRegexMatching(t *testing.T) {
-	client := NewTestClient(&http.Response{StatusCode: 200, Body: makeBody(testFixture("create_series.json"))})
+	client, _ := NewTestClient(&http.Response{StatusCode: 200, Body: makeBody(testFixture("create_series.json"))})
 	_, err := client.CreateSeries("#")
 	if err == nil {
 		t.Errorf("Should be invalid")
@@ -59,7 +67,7 @@ func TestCreateSeries(t *testing.T) {
 		Status:     "200 OK",
 		Body:       makeBody(testFixture("create_series.json")),
 	}
-	client := NewTestClient(resp)
+	client, _ := NewTestClient(resp)
 	expectedKey := "key2"
 	expectedId := "0e3178aea7964c4cb1a15db1e80e2a7f"
 	expectedName := ""
@@ -97,12 +105,12 @@ func TestReadKey(t *testing.T) {
 		Body:       body,
 	}
 
-	client := NewTestClient(resp)
+	client, _ := NewTestClient(resp)
 
-	start_time := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
-	end_time := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
 	key := "getting_started"
-	dataset, err := client.ReadKey(key, start_time, end_time)
+	dataset, err := client.ReadKey(key, startTime, endTime)
 
 	if err != nil {
 		t.Error(err)
@@ -117,5 +125,43 @@ func TestReadKey(t *testing.T) {
 }
 
 func TestWriteKey(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status: "200 OK",
+		Body: makeBody(""),
+	}
 
+	client, remoter := NewTestClient(resp)
+	datapoints := []*DataPoint{
+		&DataPoint{
+			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			V: 1.23,
+		},
+		&DataPoint{
+			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
+			V: 3.14,
+		},
+	}
+
+	err := client.WriteKey("key", datapoints)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+
+	req := remoter.LastRequest()
+	b, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	var ds []DataSet
+	err = json.Unmarshal(b, &ds)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
 }

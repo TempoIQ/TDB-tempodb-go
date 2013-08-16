@@ -20,14 +20,16 @@ var (
 
 const (
 	API_HOSTNAME = "https://api.tempo-db.com"
-	ISO8601_FMT  = "2006-01-02T15:04:05Z0700"
+	ISO8601_FMT  = "2006-01-02T15:04:05.000Z0700"
 )
 
-type TempoTime time.Time
+type TempoTime struct {
+	Time time.Time
+}
 
 type DataPoint struct {
-	Ts *TempoTime
-	V  float64
+	Ts *TempoTime `json:"t"`
+	V  float64 `json:"v"`
 }
 
 type Remoter interface {
@@ -36,6 +38,11 @@ type Remoter interface {
 
 type createSeriesRequest struct {
 	Key string
+}
+
+func (tt *TempoTime) MarshalJSON() ([]byte, error) {
+	formatted := fmt.Sprintf("\"%s\"", tt.Time.Format(ISO8601_FMT))
+	return []byte(formatted), nil
 }
 
 func (tt *TempoTime) UnmarshalJSON(data []byte) error {
@@ -49,7 +56,7 @@ func (tt *TempoTime) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	tt = (*TempoTime)(&t)
+	tt.Time = t
 
 	return nil
 }
@@ -58,7 +65,7 @@ type DataSet struct {
 	Series  Series
 	Start   TempoTime
 	End     TempoTime
-	Data    []DataPoint
+	Data    []*DataPoint
 	Summary map[string]float64
 }
 
@@ -149,15 +156,15 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 	return &series, nil
 }
 
-func (client *Client) WriteId(id string, data []DataPoint) error {
+func (client *Client) WriteId(id string, data []*DataPoint) error {
 	return client.writeSeries("id", id, data)
 }
 
-func (client *Client) WriteKey(key string, data []DataPoint) error {
+func (client *Client) WriteKey(key string, data []*DataPoint) error {
 	return client.writeSeries("key", key, data)
 }
 
-func (client *Client) writeSeries(series_type string, series_val string, data []DataPoint) error {
+func (client *Client) writeSeries(series_type string, series_val string, data []*DataPoint) error {
 	endpointURL := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(series_val))
 
 	b, err := json.Marshal(data)
@@ -209,15 +216,15 @@ func (client *Client) ReadId(id string, start time.Time, end time.Time) (*DataSe
 	return client.readSeries("id", id, start, end)
 }
 
-func (client *Client) IncrementId(id string, data []DataPoint) error {
+func (client *Client) IncrementId(id string, data []*DataPoint) error {
 	return client.incrementSeries("id", id, data)
 }
 
-func (client *Client) IncrementKey(key string, data []DataPoint) error {
+func (client *Client) IncrementKey(key string, data []*DataPoint) error {
 	return client.incrementSeries("key", key, data)
 }
 
-func (client *Client) incrementSeries(series_type string, series_val string, data []DataPoint) error {
+func (client *Client) incrementSeries(series_type string, series_val string, data []*DataPoint) error {
 	endpointURL := fmt.Sprintf("/series/%s/%s/increment/?", series_type, url.QueryEscape(series_val))
 	b, err := json.Marshal(data)
 	if err != nil {
