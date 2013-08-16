@@ -4,9 +4,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strings"
 	"testing"
 	"time"
+)
+
+const (
+	FIXTURE_FOLDER = "./test_fixtures"
 )
 
 type MockRemoter struct {
@@ -21,6 +26,11 @@ func makeBody(body string) io.ReadCloser {
 	return ioutil.NopCloser(strings.NewReader(body))
 }
 
+func testFixture(name string) string {
+	b, _ := ioutil.ReadFile(path.Join(FIXTURE_FOLDER, name))
+	return string(b)
+}
+
 func NewTestClient(resp *http.Response) *Client {
 	client := NewClient()
 	client.Remoter = &MockRemoter{resp}
@@ -28,7 +38,7 @@ func NewTestClient(resp *http.Response) *Client {
 }
 
 func TestRegexMatching(t *testing.T) {
-	client := NewTestClient(&http.Response{StatusCode: 200, Body: makeBody(`{"id":"0e3178aea7964c4cb1a15db1e80e2a7f","key":"validkey","name":"","tags":[],"attributes":{}}`)})
+	client := NewTestClient(&http.Response{StatusCode: 200, Body: makeBody(testFixture("create_series.json"))})
 	_, err := client.CreateSeries("#")
 	if err == nil {
 		t.Errorf("Should be invalid")
@@ -47,7 +57,7 @@ func TestCreateSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
 		Status:     "200 OK",
-		Body:       makeBody(`{"id":"0e3178aea7964c4cb1a15db1e80e2a7f","key":"key2","name":"","tags":[],"attributes":{}}`),
+		Body:       makeBody(testFixture("create_series.json")),
 	}
 	client := NewTestClient(resp)
 	expectedKey := "key2"
@@ -80,42 +90,7 @@ func TestCreateSeries(t *testing.T) {
 }
 
 func TestReadKey(t *testing.T) {
-	body := makeBody(`{
-							"series":{
-							"id":"01868c1a2aaf416ea6cd8edd65e7a4b8",
-							"key":"key1",
-							"name":"",
-							"tags":[
-							"temp"
-							],
-							"attributes":{
-							"temp":"1"
-							}
-							},
-							"start":"2012-01-01T00:00:00.000+0000",
-							"end":"2012-01-02T00:00:00.000+0000",
-							"data":[
-							{"t":"2012-01-01T00:00:00.000+0000","v":4.00},
-							{"t":"2012-01-01T06:00:00.000+0000","v":3.00},
-							{"t":"2012-01-01T12:00:00.000+0000","v":2.00},
-							{"t":"2012-01-01T18:00:00.000+0000","v":3.00}
-							],
-							"rollup":{
-							"interval":"PT6H",
-							"function":"avg",
-							"tz":"UTC"
-							},
-							"summary":{
-							"mean":3.00,
-							"sum":12.00,
-							"min":2.00,
-							"max":4.00,
-							"stddev":0.8165,
-							"ss":2.00,
-							"count":4
-							}
-							}`)
-
+	body := makeBody(testFixture("read_id_and_key.json"))
 	resp := &http.Response{
 		StatusCode: 200,
 		Status:     "200 OK",
@@ -126,7 +101,7 @@ func TestReadKey(t *testing.T) {
 
 	start_time := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
 	end_time := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
-	key := "key1"
+	key := "getting_started"
 	dataset, err := client.ReadKey(key, start_time, end_time)
 
 	if err != nil {
@@ -136,7 +111,7 @@ func TestReadKey(t *testing.T) {
 	}
 
 	if dataset.Series.Key != key {
-		t.Errorf("Expected key to be %s but was %s", dataset.Series.Key, key)
+		t.Errorf("Expected key to be %s but was %s", key, dataset.Series.Key)
 	}
 
 }
