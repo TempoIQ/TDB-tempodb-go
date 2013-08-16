@@ -440,3 +440,50 @@ func TestWriteBulk(t *testing.T) {
 		t.Errorf("Expected body to be %s but was %s", expectedBody, string(lastBody))
 	}
 }
+
+func TestFilterEncoding(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       makeBody(testFixture("get_series.json")),
+	}
+	client, remoter := NewTestClient(resp)
+	expectedId := "id1"
+	expectedKey := "key1"
+	expectedTag := "tag1"
+	expectedAttribute := "value"
+	filter := NewFilter()
+	filter.AddId(expectedId)
+	filter.AddKey(expectedKey)
+	filter.AddTag(expectedTag)
+	filter.AddAttribute("key", expectedAttribute)
+	_, err := client.GetSeries(filter)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	lastRequest := remoter.LastRequest()
+
+	if lastRequest.FormValue("id") != expectedId {
+		t.Errorf("Expected id to be %s but was %s", expectedId, lastRequest.FormValue("id"))
+
+		return
+	}
+	if lastRequest.FormValue("key") != expectedKey {
+		t.Errorf("Expected key to be %s but was %s", expectedKey, lastRequest.FormValue("key"))
+
+		return
+	}
+	if lastRequest.FormValue("tag") != expectedTag {
+		t.Errorf("Expected tag to be %s but was %s", expectedTag, lastRequest.FormValue("tag"))
+
+		return
+	}
+
+	if lastRequest.FormValue("attr[key]") != expectedAttribute {
+		t.Errorf("Expected attribute to be %s but was %s", expectedAttribute, lastRequest.FormValue("attr[key]"))
+
+		return
+	}
+}

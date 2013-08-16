@@ -401,15 +401,20 @@ func (client *Client) encodeTimes(start time.Time, end time.Time) string {
 //TODO: add attributes, tags
 func (filter *Filter) encodeUrl() string {
 	v := url.Values{}
-	if len(filter.Ids) != 0 {
-		for _, id := range filter.Ids {
-			v.Add("id", id)
-		}
+	for _, id := range filter.Ids {
+		v.Add("id", id)
 	}
-	if len(filter.Keys) != 0 {
-		for _, key := range filter.Keys {
-			v.Add("key", key)
-		}
+
+	for _, key := range filter.Keys {
+		v.Add("key", key)
+	}
+
+	for _, tag := range filter.Tags {
+		v.Add("tag", tag)
+	}
+
+	for key, value := range filter.Attributes {
+		v.Add(fmt.Sprintf("attr[%s]", key), value)
 	}
 
 	return v.Encode()
