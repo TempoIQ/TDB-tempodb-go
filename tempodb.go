@@ -18,8 +18,14 @@ var (
 	ERR_INVALID_KEY = errors.New("Key is not in the correct format")
 )
 
+const (
+	ISO8601_FMT = "2006-01-02T15:04:05Z0700"
+)
+
+type TempoTime time.Time
+
 type DataPoint struct {
-	Ts time.Time
+	Ts *TempoTime
 	V  float64
 }
 
@@ -31,20 +37,33 @@ type createSeriesRequest struct {
 	Key string
 }
 
+func (tt *TempoTime) UnmarshalJSON(data []byte) error {
+	b := bytes.NewBuffer(data)
+	decoded := json.NewDecoder(b)
+	var s string
+	if err := decoded.Decode(&s); err != nil {
+		return err
+	}
+	t, err := time.Parse(ISO8601_FMT, s)
+	if err != nil {
+		return err
+	}
+	tt = (*TempoTime)(&t)
+
+	return nil
+}
+
 func (dp *DataPoint) ToJSON() string {
 	//TODO: implement an actual JSON encoder instead of just string formatting
-	const layout = "2006-01-02T15:04:05.000-0700"
 
-	date_string := dp.Ts.Format(layout)
-	thisJson := fmt.Sprintf(`{"t":"%s","v":%v}`, date_string, dp.V)
-	return thisJson
+	return "Implement me"
 
 }
 
 type DataSet struct {
 	Series  Series
-	Start   time.Time
-	End     time.Time
+	Start   TempoTime
+	End     TempoTime
 	Data    []DataPoint
 	Summary map[string]float64
 }
@@ -147,22 +166,14 @@ func (client *Client) WriteKey(key string, data []DataPoint) error {
 func (client *Client) writeSeries(series_type string, series_val string, data []DataPoint) error {
 	endpointURL := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(series_val))
 
-	//TODO: Actual Encoder, not just string formatting
-	formString := "["
-	for i, dp := range data {
-		formString = formString + dp.ToJSON()
-		if i != len(data)-1 {
-			formString = formString + ","
-		}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
 	}
-	formString = formString + "]"
-	fmt.Println(formString)
-
 	URL := client.buildUrl(endpointURL, "", "")
-	resp := client.makeRequest(URL, "POST", []byte{})
+	resp := client.makeRequest(URL, "POST", b)
 
 	statusCode := resp.StatusCode
-
 	if statusCode == http.StatusOK {
 		return nil
 	}
@@ -177,8 +188,8 @@ func (client *Client) writeSeries(series_type string, series_val string, data []
 
 func (client *Client) readSeries(series_type string, series_val string, start time.Time, end time.Time) (*DataSet, error) {
 	endpointURL := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(series_val))
-	URL := client.buildUrl(endpointURL, client.encodeTimes(start, end), "")
-	resp := client.makeRequest(URL, "GET", []byte{})
+	url := client.buildUrl(endpointURL, client.encodeTimes(start, end), "")
+	resp := client.makeRequest(url, "GET", []byte{})
 
 	bodyText, err := ioutil.ReadAll(resp.Body)
 
@@ -187,10 +198,9 @@ func (client *Client) readSeries(series_type string, series_val string, start ti
 	}
 
 	var dataset DataSet
-	jsonErr := json.Unmarshal(bodyText, &dataset)
-
-	if jsonErr != nil {
-		return nil, jsonErr
+	err = json.Unmarshal(bodyText, &dataset)
+	if err != nil {
+		return nil, err
 	}
 
 	return &dataset, nil
@@ -205,46 +215,41 @@ func (client *Client) ReadId(id string, start time.Time, end time.Time) (*DataSe
 	return client.readSeries("id", id, start, end)
 }
 
-func (client *Client) IncrementId(id string, data []DataPoint) {
-	client.incrementSeries("id", id, data)
+func (client *Client) IncrementId(id string, data []DataPoint) error {
+	return client.incrementSeries("id", id, data)
 }
 
-func (client *Client) IncrementKey(key string, data []DataPoint) {
-	client.incrementSeries("key", key, data)
+func (client *Client) IncrementKey(key string, data []DataPoint) error {
+	return client.incrementSeries("key", key, data)
 }
 
-func (client *Client) incrementSeries(series_type string, series_val string, data []DataPoint) {
+func (client *Client) incrementSeries(series_type string, series_val string, data []DataPoint) error {
 	endpointURL := fmt.Sprintf("/series/%s/%s/increment/?", series_type, url.QueryEscape(series_val))
-
-	//TODO: Actual Encoder, not just string formatting
-	formString := "["
-	for i, dp := range data {
-		formString = formString + dp.ToJSON()
-		if i != len(data)-1 {
-			formString = formString + ","
-		}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
 	}
-	formString = formString + "]"
-	fmt.Println(formString)
-
 	URL := client.buildUrl(endpointURL, "", "")
-	resp := client.makeRequest(URL, "POST", []byte{})
-	fmt.Println(resp.StatusCode)
+	_ = client.makeRequest(URL, "POST", b)
+	// TODO: Handle non 200
+
+	return nil
 }
 
-func (client *Client) DeleteId(id string, start time.Time, end time.Time) {
-	client.deleteSeries("id", id, start, end)
+func (client *Client) DeleteId(id string, start time.Time, end time.Time) error {
+	return client.deleteSeries("id", id, start, end)
 }
 
-func (client *Client) DeleteKey(key string, start time.Time, end time.Time) {
-	client.deleteSeries("key", key, start, end)
+func (client *Client) DeleteKey(key string, start time.Time, end time.Time) error {
+	return client.deleteSeries("key", key, start, end)
 }
 
-func (client *Client) deleteSeries(series_type string, series_val string, start time.Time, end time.Time) {
+func (client *Client) deleteSeries(series_type string, series_val string, start time.Time, end time.Time) error {
 	endpointURL := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(series_val))
 	URL := client.buildUrl(endpointURL, client.encodeTimes(start, end), "")
-	resp := client.makeRequest(URL, "DELETE", []byte{})
-	fmt.Println(resp.StatusCode)
+	_ = client.makeRequest(URL, "DELETE", []byte{})
+
+	return nil
 }
 
 func (client *Client) WriteBulk(ts time.Time) int {
