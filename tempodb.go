@@ -398,8 +398,16 @@ func (client *Client) incrementSeries(series_type string, seriesVal string, data
 
 func (client *Client) deleteSeries(series_type string, seriesVal string, start time.Time, end time.Time) error {
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
-	URL := client.buildUrl(endpointUrl, client.encodeTimes(start, end), "")
-	_ = client.makeRequest(URL, "DELETE", []byte{})
+	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end), "")
+	resp := client.makeRequest(url, "DELETE", []byte{})
+	if resp.StatusCode != http.StatusOK {
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		return httpError(resp.Status, respBody)
+	}
 
 	return nil
 }
