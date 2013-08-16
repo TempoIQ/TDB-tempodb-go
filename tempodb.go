@@ -398,7 +398,6 @@ func (client *Client) encodeTimes(start time.Time, end time.Time) string {
 	return v.Encode()
 }
 
-//TODO: add attributes, tags
 func (filter *Filter) encodeUrl() string {
 	v := url.Values{}
 	for _, id := range filter.Ids {
