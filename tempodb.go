@@ -171,26 +171,47 @@ func (client *Client) WriteKey(key string, data []*DataPoint) error {
 	return client.writeSeries("key", key, data)
 }
 
-func (client *Client) writeSeries(series_type string, series_val string, data []*DataPoint) error {
-	endpointUrl := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(series_val))
+func (client *Client) Read(start time.Time, end time.Time, filter Filter) []DataSet {
+	URL := client.buildUrl("/data?", client.encodeTimes(start, end), filter.encodeUrl())
+	resp := client.makeRequest(URL, "GET", []byte{})
+	bodyText, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(bodyText))
 
-	b, err := json.Marshal(data)
+	var datasets []DataSet
+	err := json.Unmarshal(bodyText, &datasets)
 	if err != nil {
-		return err
-	}
-	url := client.buildUrl(endpointUrl, "", "")
-	resp := client.makeRequest(url, "POST", b)
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-
-		return httpError(resp.Status, respBody)
+		log.Fatal(err)
 	}
 
-	return nil
+	return datasets
+}
+
+func (client *Client) ReadKey(key string, start time.Time, end time.Time) (*DataSet, error) {
+	return client.readSeries("key", key, start, end)
+}
+
+func (client *Client) ReadId(id string, start time.Time, end time.Time) (*DataSet, error) {
+	return client.readSeries("id", id, start, end)
+}
+
+func (client *Client) IncrementId(id string, data []*DataPoint) error {
+	return client.incrementSeries("id", id, data)
+}
+
+func (client *Client) IncrementKey(key string, data []*DataPoint) error {
+	return client.incrementSeries("key", key, data)
+}
+
+func (client *Client) DeleteId(id string, start time.Time, end time.Time) error {
+	return client.deleteSeries("id", id, start, end)
+}
+
+func (client *Client) DeleteKey(key string, start time.Time, end time.Time) error {
+	return client.deleteSeries("key", key, start, end)
+}
+
+func (client *Client) WriteBulk(ts time.Time) int {
+	return 0
 }
 
 func (client *Client) readSeries(series_type string, series_val string, start time.Time, end time.Time) (*DataSet, error) {
@@ -215,23 +236,28 @@ func (client *Client) readSeries(series_type string, series_val string, start ti
 	}
 
 	return &dataset, nil
-
 }
 
-func (client *Client) ReadKey(key string, start time.Time, end time.Time) (*DataSet, error) {
-	return client.readSeries("key", key, start, end)
-}
+func (client *Client) writeSeries(series_type string, series_val string, data []*DataPoint) error {
+	endpointUrl := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(series_val))
 
-func (client *Client) ReadId(id string, start time.Time, end time.Time) (*DataSet, error) {
-	return client.readSeries("id", id, start, end)
-}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	url := client.buildUrl(endpointUrl, "", "")
+	resp := client.makeRequest(url, "POST", b)
 
-func (client *Client) IncrementId(id string, data []*DataPoint) error {
-	return client.incrementSeries("id", id, data)
-}
+	if resp.StatusCode != http.StatusOK {
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
 
-func (client *Client) IncrementKey(key string, data []*DataPoint) error {
-	return client.incrementSeries("key", key, data)
+		return httpError(resp.Status, respBody)
+	}
+
+	return nil
 }
 
 func (client *Client) incrementSeries(series_type string, series_val string, data []*DataPoint) error {
@@ -247,40 +273,12 @@ func (client *Client) incrementSeries(series_type string, series_val string, dat
 	return nil
 }
 
-func (client *Client) DeleteId(id string, start time.Time, end time.Time) error {
-	return client.deleteSeries("id", id, start, end)
-}
-
-func (client *Client) DeleteKey(key string, start time.Time, end time.Time) error {
-	return client.deleteSeries("key", key, start, end)
-}
-
 func (client *Client) deleteSeries(series_type string, series_val string, start time.Time, end time.Time) error {
 	endpointURL := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(series_val))
 	URL := client.buildUrl(endpointURL, client.encodeTimes(start, end), "")
 	_ = client.makeRequest(URL, "DELETE", []byte{})
 
 	return nil
-}
-
-func (client *Client) WriteBulk(ts time.Time) int {
-	return 0
-}
-
-func (client *Client) Read(start time.Time, end time.Time, filter Filter) []DataSet {
-	URL := client.buildUrl("/data?", client.encodeTimes(start, end), filter.encodeUrl())
-	resp := client.makeRequest(URL, "GET", []byte{})
-	bodyText, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(bodyText))
-
-	var datasets []DataSet
-	err := json.Unmarshal(bodyText, &datasets)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return datasets
-
 }
 
 func (client *Client) buildUrl(endpoint string, times string, params_str string) string {
