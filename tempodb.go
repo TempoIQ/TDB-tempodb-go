@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -157,7 +156,10 @@ func (bp *BulkIdPoint) GetValue() float64 {
 
 func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	url := client.buildUrl("/series?", "", filter.encodeUrl())
-	resp := client.makeRequest(url, "GET", []byte{})
+	resp, err := client.makeRequest(url, "GET", []byte{})
+	if err != nil {
+		return nil, err
+	}
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -188,7 +190,10 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 		return nil, err
 	}
 	url := client.buildUrl("/series/", "", "")
-	resp := client.makeRequest(url, "POST", reqBody)
+	resp, err := client.makeRequest(url, "POST", reqBody)
+	if err != nil {
+		return nil, err
+	}
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -215,7 +220,11 @@ func (client *Client) UpdateSeries(series *Series) (*Series, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp := client.makeRequest(url, "PUT", b)
+	resp, err := client.makeRequest(url, "PUT", b)
+	if err != nil {
+		return nil, err
+	}
+
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -250,7 +259,10 @@ func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 	if err != nil {
 		return err
 	}
-	resp := client.makeRequest(url, "POST", b)
+	resp, err := client.makeRequest(url, "POST", b)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -265,7 +277,10 @@ func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 
 func (client *Client) Read(start time.Time, end time.Time, filter *Filter) ([]*DataSet, error) {
 	url := client.buildUrl("/data?", client.encodeTimes(start, end), filter.encodeUrl())
-	resp := client.makeRequest(url, "GET", []byte{})
+	resp, err := client.makeRequest(url, "GET", []byte{})
+	if err != nil {
+		return nil, err
+	}
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -309,7 +324,10 @@ func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 	if err != nil {
 		return err
 	}
-	resp := client.makeRequest(url, "POST", b)
+	resp, err := client.makeRequest(url, "POST", b)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -333,7 +351,10 @@ func (client *Client) DeleteKey(key string, start time.Time, end time.Time) erro
 func (client *Client) readSeries(series_type string, seriesVal string, start time.Time, end time.Time) (*DataSet, error) {
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
 	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end), "")
-	resp := client.makeRequest(url, "GET", []byte{})
+	resp, err := client.makeRequest(url, "GET", []byte{})
+	if err != nil {
+		return nil, err
+	}
 
 	b, err := ioutil.ReadAll(resp.Body)
 
@@ -362,7 +383,10 @@ func (client *Client) writeSeries(series_type string, seriesVal string, data []*
 		return err
 	}
 	url := client.buildUrl(endpointUrl, "", "")
-	resp := client.makeRequest(url, "POST", b)
+	resp, err := client.makeRequest(url, "POST", b)
+	if err != nil {
+		return err
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := ioutil.ReadAll(resp.Body)
@@ -383,7 +407,10 @@ func (client *Client) incrementSeries(series_type string, seriesVal string, data
 		return err
 	}
 	url := client.buildUrl(endpointUrl, "", "")
-	resp := client.makeRequest(url, "POST", b)
+	resp, err := client.makeRequest(url, "POST", b)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -399,7 +426,10 @@ func (client *Client) incrementSeries(series_type string, seriesVal string, data
 func (client *Client) deleteSeries(series_type string, seriesVal string, start time.Time, end time.Time) error {
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
 	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end), "")
-	resp := client.makeRequest(url, "DELETE", []byte{})
+	resp, err := client.makeRequest(url, "DELETE", []byte{})
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != http.StatusOK {
 		respBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -451,16 +481,15 @@ func (filter *Filter) encodeUrl() string {
 	return v.Encode()
 }
 
-func (client *Client) makeRequest(builtURL string, method string, formString []byte) *http.Response {
-	req, err := http.NewRequest(method, builtURL, bytes.NewReader(formString))
+func (client *Client) makeRequest(builtUrl string, method string, formString []byte) (*http.Response, error) {
+	req, err := http.NewRequest(method, builtUrl, bytes.NewReader(formString))
+	if err != nil {
+		return nil, err
+	}
 	req.SetBasicAuth(client.Key, client.Secret)
 	req.Header["User-Agent"] = []string{USER_AGENT}
-	resp, err := client.Remoter.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	return resp
+	return client.Remoter.Do(req)
 }
 
 func httpError(status string, body []byte) error {
