@@ -118,7 +118,7 @@ func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, httpError(resp.Status, b)
 	}
 	var series []*Series
@@ -145,13 +145,17 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 	url := client.buildUrl("/series/", "", "")
 	resp := client.makeRequest(url, "POST", reqBody)
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, httpError(resp.Status, b)
+	}
+
 	var series Series
-	err = json.Unmarshal(respBody, &series)
+	err = json.Unmarshal(b, &series)
 	if err != nil {
 		return nil, err
 	}
@@ -168,26 +172,26 @@ func (client *Client) WriteKey(key string, data []*DataPoint) error {
 }
 
 func (client *Client) writeSeries(series_type string, series_val string, data []*DataPoint) error {
-	endpointURL := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(series_val))
+	endpointUrl := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(series_val))
 
 	b, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-	URL := client.buildUrl(endpointURL, "", "")
-	resp := client.makeRequest(URL, "POST", b)
+	url := client.buildUrl(endpointUrl, "", "")
+	resp := client.makeRequest(url, "POST", b)
 
 	statusCode := resp.StatusCode
-	if statusCode == http.StatusOK {
-		return nil
+	if statusCode != http.StatusOK {
+		respBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		return httpError(resp.Status, respBody)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return errors.New(string(body))
+	return nil
 }
 
 func (client *Client) readSeries(series_type string, series_val string, start time.Time, end time.Time) (*DataSet, error) {
