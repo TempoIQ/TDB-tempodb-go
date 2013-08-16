@@ -17,7 +17,7 @@ const (
 
 type MockRemoter struct {
 	nextResponse *http.Response
-	lastRequest *http.Request
+	lastRequest  *http.Request
 }
 
 func (m *MockRemoter) Do(req *http.Request) (*http.Response, error) {
@@ -64,8 +64,8 @@ func TestRegexMatching(t *testing.T) {
 func TestGetSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: makeBody(testFixture("get_series.json")),
+		Status:     "200 OK",
+		Body:       makeBody(testFixture("get_series.json")),
 	}
 	client, _ := NewTestClient(resp)
 	series, err := client.GetSeries(&Filter{})
@@ -148,19 +148,19 @@ func TestReadKey(t *testing.T) {
 func TestWriteKey(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
-		Status: "200 OK",
-		Body: makeBody(""),
+		Status:     "200 OK",
+		Body:       makeBody(""),
 	}
 
 	client, remoter := NewTestClient(resp)
 	datapoints := []*DataPoint{
 		&DataPoint{
 			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
-			V: 1.23,
+			V:  1.23,
 		},
 		&DataPoint{
 			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
-			V: 3.14,
+			V:  3.14,
 		},
 	}
 

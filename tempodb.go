@@ -28,7 +28,7 @@ type TempoTime struct {
 
 type DataPoint struct {
 	Ts *TempoTime `json:"t"`
-	V  float64 `json:"v"`
+	V  float64    `json:"v"`
 }
 
 type Remoter interface {
@@ -37,27 +37,6 @@ type Remoter interface {
 
 type createSeriesRequest struct {
 	Key string
-}
-
-func (tt *TempoTime) MarshalJSON() ([]byte, error) {
-	formatted := fmt.Sprintf("\"%s\"", tt.Time.Format(ISO8601_FMT))
-	return []byte(formatted), nil
-}
-
-func (tt *TempoTime) UnmarshalJSON(data []byte) error {
-	b := bytes.NewBuffer(data)
-	decoded := json.NewDecoder(b)
-	var s string
-	if err := decoded.Decode(&s); err != nil {
-		return err
-	}
-	t, err := time.Parse(ISO8601_FMT, s)
-	if err != nil {
-		return err
-	}
-	tt.Time = t
-
-	return nil
 }
 
 type DataSet struct {
@@ -95,6 +74,27 @@ func NewClient() *Client {
 	client := &Client{Host: API_HOSTNAME, Port: 443}
 	client.Remoter = &http.Client{}
 	return client
+}
+
+func (tt *TempoTime) MarshalJSON() ([]byte, error) {
+	formatted := fmt.Sprintf("\"%s\"", tt.Time.Format(ISO8601_FMT))
+	return []byte(formatted), nil
+}
+
+func (tt *TempoTime) UnmarshalJSON(data []byte) error {
+	b := bytes.NewBuffer(data)
+	decoded := json.NewDecoder(b)
+	var s string
+	if err := decoded.Decode(&s); err != nil {
+		return err
+	}
+	t, err := time.Parse(ISO8601_FMT, s)
+	if err != nil {
+		return err
+	}
+	tt.Time = t
+
+	return nil
 }
 
 func (filter *Filter) AddId(id string) {
