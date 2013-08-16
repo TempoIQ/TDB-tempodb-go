@@ -181,8 +181,7 @@ func (client *Client) writeSeries(series_type string, series_val string, data []
 	url := client.buildUrl(endpointUrl, "", "")
 	resp := client.makeRequest(url, "POST", b)
 
-	statusCode := resp.StatusCode
-	if statusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		respBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return err
@@ -199,14 +198,18 @@ func (client *Client) readSeries(series_type string, series_val string, start ti
 	url := client.buildUrl(endpointURL, client.encodeTimes(start, end), "")
 	resp := client.makeRequest(url, "GET", []byte{})
 
-	bodyText, err := ioutil.ReadAll(resp.Body)
+	b, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
 		return nil, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, httpError(resp.Status, b)
+	}
+
 	var dataset DataSet
-	err = json.Unmarshal(bodyText, &dataset)
+	err = json.Unmarshal(b, &dataset)
 	if err != nil {
 		return nil, err
 	}

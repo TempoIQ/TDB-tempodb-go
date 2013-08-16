@@ -130,8 +130,35 @@ func TestReadKey(t *testing.T) {
 
 	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
 	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+	id := "3c9b4f3a19114a7eb670ff7c4917f315"
+	dataset, err := client.ReadId(id, startTime, endTime)
+
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+
+	if dataset.Series.Id != id {
+		t.Errorf("Expected id to be %s but was %s", id, dataset.Series.Id)
+	}
+
+}
+
+func TestReadId(t *testing.T) {
+	body := makeBody(testFixture("read_id_and_key.json"))
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       body,
+	}
+
+	client, _ := NewTestClient(resp)
+
+	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
 	key := "getting_started"
-	dataset, err := client.ReadKey(key, startTime, endTime)
+	dataset, err := client.ReadId(key, startTime, endTime)
 
 	if err != nil {
 		t.Error(err)
@@ -165,6 +192,48 @@ func TestWriteKey(t *testing.T) {
 	}
 
 	err := client.WriteKey("key", datapoints)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+
+	req := remoter.LastRequest()
+	b, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	var ds []DataSet
+	err = json.Unmarshal(b, &ds)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+}
+
+func TestWriteId(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       makeBody(""),
+	}
+
+	client, remoter := NewTestClient(resp)
+	datapoints := []*DataPoint{
+		&DataPoint{
+			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			V:  1.23,
+		},
+		&DataPoint{
+			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
+			V:  3.14,
+		},
+	}
+
+	err := client.WriteId("0aeef415ce734b02af5325f6ad977e26", datapoints)
 	if err != nil {
 		t.Error(err)
 
