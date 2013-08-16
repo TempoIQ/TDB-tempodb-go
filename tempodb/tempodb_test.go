@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"io"
 	"strings"
+	"time"
 )
 
 type MockRemoter struct {
@@ -77,3 +78,72 @@ func TestCreateSeries(t *testing.T) {
 		t.Errorf("Expected key to be %s but was %s", 0, len(series.Tags))
 	}
 }
+
+func TestReadKey(t *testing.T){
+	    body := makeBody(`{
+							"series":{
+							"id":"01868c1a2aaf416ea6cd8edd65e7a4b8",
+							"key":"key1",
+							"name":"",
+							"tags":[
+							"temp"
+							],
+							"attributes":{
+							"temp":"1"
+							}
+							},
+							"start":"2012-01-01T00:00:00.000+0000",
+							"end":"2012-01-02T00:00:00.000+0000",
+							"data":[
+							{"t":"2012-01-01T00:00:00.000+0000","v":4.00},
+							{"t":"2012-01-01T06:00:00.000+0000","v":3.00},
+							{"t":"2012-01-01T12:00:00.000+0000","v":2.00},
+							{"t":"2012-01-01T18:00:00.000+0000","v":3.00}
+							],
+							"rollup":{
+							"interval":"PT6H",
+							"function":"avg",
+							"tz":"UTC"
+							},
+							"summary":{
+							"mean":3.00,
+							"sum":12.00,
+							"min":2.00,
+							"max":4.00,
+							"stddev":0.8165,
+							"ss":2.00,
+							"count":4
+							}
+							}`)
+
+	resp := &http.Response{
+		StatusCode: 200,
+		Status: "200 OK",
+		Body: body,
+	}
+
+	client := NewTestClient(resp)
+
+	start_time :=  time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+    end_time := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+	key := "key1"
+	dataset, err := client.ReadKey(key, start_time, end_time)
+
+	if err != nil {
+		t.Error(err)
+		
+		return
+	}
+
+	if dataset.Series.Key != key {
+		t.Errorf("Expected key to be %s but was %s", dataset.Series.Key, key)
+	}
+
+
+}
+
+func TestWriteKey(t *testing.T){
+	
+
+}
+
