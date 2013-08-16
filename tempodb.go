@@ -208,6 +208,30 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 	return &series, nil
 }
 
+func (client *Client) UpdateSeries(series *Series) (*Series, error) {
+	endpointUrl := fmt.Sprintf("/series/id/%s/", url.QueryEscape(series.Id))
+	url := client.buildUrl(endpointUrl, "", "")
+	b, err := json.Marshal(series)
+	if err != nil {
+		return nil, err
+	}
+	resp := client.makeRequest(url, "PUT", b)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, httpError(resp.Status, respBody)
+	}
+	var responseSeries Series
+	err = json.Unmarshal(respBody, &responseSeries)
+	if err != nil {
+		return nil, err
+	}
+
+	return &responseSeries, nil
+}
+
 func (client *Client) WriteId(id string, data []*DataPoint) error {
 	return client.writeSeries("id", id, data)
 }
@@ -217,7 +241,7 @@ func (client *Client) WriteKey(key string, data []*DataPoint) error {
 }
 
 func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
-	url := client.buildUrl("/data", "", "")
+	url := client.buildUrl("/data/", "", "")
 	dataSet := &BulkDataSet{
 		Ts:   &TempoTime{Time: ts},
 		Data: data,

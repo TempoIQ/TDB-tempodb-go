@@ -2,6 +2,7 @@ package tempodb
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -115,6 +116,38 @@ func TestCreateSeries(t *testing.T) {
 	}
 	if len(series.Tags) != 0 {
 		t.Errorf("Expected key to be %s but was %s", 0, len(series.Tags))
+	}
+}
+
+func TestUpdateSeries(t *testing.T) {
+	body := makeBody(testFixture("update_series.json"))
+	resp := &http.Response{
+		StatusCode: 200,
+		Status: "200 OK",
+		Body: body,
+	}
+
+	client, _ := NewTestClient(resp)
+	series := &Series{
+		Id: "0e3178aea7964c4cb1a15db1e80e2a7f",
+		Key: "key2",
+		Name: "my_series",
+		Tags: make([]string, 0),
+		Attributes: make(map[string]string),
+	}
+	responseSeries, err := client.UpdateSeries(series)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+
+	s1 := fmt.Sprintf("%s", series)
+	s2 := fmt.Sprintf("%s", responseSeries)
+	if s1 != s2 {
+		t.Errorf("Expected %s to equal %s", s1, s2)
+
+		return
 	}
 }
 
