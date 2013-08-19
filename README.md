@@ -10,7 +10,7 @@ go get github.com/tempodb/tempodb-go
 
 # Basic Usage
 
-```golang
+```go
 package main
 
 import (
@@ -25,7 +25,7 @@ func main() {
          if err != nil {
                log.Fatal(err)  
          }
-	 fmt.Println(created)
+         fmt.Println(created)
 }
 ```
 
