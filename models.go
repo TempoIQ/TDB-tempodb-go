@@ -75,10 +75,10 @@ type Series struct {
 }
 
 type Filter struct {
-	Ids        []string
-	Keys       []string
-	Tags       []string
-	Attributes map[string]string
+	ids        []string
+	keys       []string
+	tags       []string
+	attributes map[string]string
 }
 
 type ReadOptions struct {
@@ -93,10 +93,10 @@ var (
 
 func NewFilter() *Filter {
 	return &Filter{
-		Ids:        make([]string, 0),
-		Keys:       make([]string, 0),
-		Tags:       make([]string, 0),
-		Attributes: make(map[string]string),
+		ids:        make([]string, 0),
+		keys:       make([]string, 0),
+		tags:       make([]string, 0),
+		attributes: make(map[string]string),
 	}
 }
 
@@ -180,19 +180,19 @@ func (ds *DataSet) UnmarshalJSON(data []byte) error {
 }
 
 func (filter *Filter) AddId(id string) {
-	filter.Ids = append(filter.Ids, id)
+	filter.ids = append(filter.ids, id)
 }
 
 func (filter *Filter) AddKey(key string) {
-	filter.Keys = append(filter.Keys, key)
+	filter.keys = append(filter.keys, key)
 }
 
 func (filter *Filter) AddTag(tag string) {
-	filter.Tags = append(filter.Tags, tag)
+	filter.tags = append(filter.tags, tag)
 }
 
 func (filter *Filter) AddAttribute(key string, value string) {
-	filter.Attributes[key] = value
+	filter.attributes[key] = value
 }
 
 func (bp *BulkKeyPoint) GetValue() float64 {
@@ -222,19 +222,19 @@ func (readOpts *ReadOptions) Url() url.Values {
 
 func (filter *Filter) Url() url.Values {
 	v := url.Values{}
-	for _, id := range filter.Ids {
+	for _, id := range filter.ids {
 		v.Add("id", id)
 	}
 
-	for _, key := range filter.Keys {
+	for _, key := range filter.keys {
 		v.Add("key", key)
 	}
 
-	for _, tag := range filter.Tags {
+	for _, tag := range filter.tags {
 		v.Add("tag", tag)
 	}
 
-	for key, value := range filter.Attributes {
+	for key, value := range filter.attributes {
 		v.Add(fmt.Sprintf("attr[%s]", key), value)
 	}
 
