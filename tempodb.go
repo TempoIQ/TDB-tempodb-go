@@ -20,7 +20,7 @@ const (
 	API_HOSTNAME    = "api.tempo-db.com"
 	API_SECURE_PORT = 443
 	ISO8601_FMT     = "2006-01-02T15:04:05.000Z0700"
-	VERSION         = 0.1
+	VERSION         = "0.1"
 )
 
 var (
