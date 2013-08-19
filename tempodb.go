@@ -25,6 +25,7 @@ const (
 
 var (
 	USER_AGENT = fmt.Sprintf("%s/%s", "tempodb-go", VERSION)
+	//Useful shorcut when you don't want to specify optional Filter parameters.
 	NullFilter = NewFilter()
 )
 
@@ -32,6 +33,8 @@ type Remoter interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
+//Stores the session information for authenticating and accessing TempoDB. Your api key and secret is required. The Client also allows you to specify the hostname, port, and protocol (http or https). This is used if you are on a private cluster. The default hostname and port should work for the standard cluster.
+//All access to data is made through a client instance.
 type Client struct {
 	Key     string
 	Secret  string
@@ -40,12 +43,14 @@ type Client struct {
 	Remoter Remoter
 }
 
+//Create a new client instance. Must provide your TempoDB API key and secret.
 func NewClient(key string, secret string) *Client {
 	client := &Client{Key: key, Secret: secret, Host: API_HOSTNAME, Port: API_SECURE_PORT}
 	client.Remoter = &http.Client{}
 	return client
 }
 
+//Gets a list of series filtered by the provided Filter.
 func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	url := client.buildUrl("/series?", "", filter.Url().Encode())
 	resp, err := client.makeRequest(url, "GET", []byte{})
@@ -69,6 +74,7 @@ func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	return series, nil
 }
 
+//Creates a new series in the database.
 func (client *Client) CreateSeries(key string) (*Series, error) {
 	matched, _ := regexp.MatchString(`^[a-zA-Z0-9\.:;\-_/\\ ]*$`, key)
 
@@ -105,6 +111,7 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 	return &series, nil
 }
 
+//Updates a Series's metadata.
 func (client *Client) UpdateSeries(series *Series) (*Series, error) {
 	endpointUrl := fmt.Sprintf("/series/id/%s/", url.QueryEscape(series.Id))
 	url := client.buildUrl(endpointUrl, "", "")
@@ -133,14 +140,17 @@ func (client *Client) UpdateSeries(series *Series) (*Series, error) {
 	return &responseSeries, nil
 }
 
+//Writes a DataSet by id.
 func (client *Client) WriteId(id string, data []*DataPoint) error {
 	return client.writeSeries("id", id, data)
 }
 
+//Writes a DataSet by key.
 func (client *Client) WriteKey(key string, data []*DataPoint) error {
 	return client.writeSeries("key", key, data)
 }
 
+//Writes a set of datapoints for different series for the same timestamp.
 func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 	url := client.buildUrl("/data/", "", "")
 	dataSet := &BulkDataSet{
@@ -167,6 +177,7 @@ func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 	return nil
 }
 
+//Reads a list of DataSet by the provided filter and rolluped by the interval
 func (client *Client) Read(start time.Time, end time.Time, filter *Filter, readOpts *ReadOptions) ([]*DataSet, error) {
 	url := client.buildUrl("/data?", client.encodeTimes(start, end), urlMerge(filter.Url(), readOpts.Url()).Encode())
 	resp, err := client.makeRequest(url, "GET", []byte{})
@@ -190,22 +201,27 @@ func (client *Client) Read(start time.Time, end time.Time, filter *Filter, readO
 	return datasets, nil
 }
 
+//Reads a DataSet by key.
 func (client *Client) ReadKey(key string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
 	return client.readSeries("key", key, start, end, readOpts)
 }
 
+//Reads a DataSet by id.
 func (client *Client) ReadId(id string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
 	return client.readSeries("id", id, start, end, readOpts)
 }
 
+//Increments a DataSet by id.
 func (client *Client) IncrementId(id string, data []*DataPoint) error {
 	return client.incrementSeries("id", id, data)
 }
 
+//Increments a DataSet by key.
 func (client *Client) IncrementKey(key string, data []*DataPoint) error {
 	return client.incrementSeries("key", key, data)
 }
 
+//Increments a set of datapoints for different series for the same timestamp.
 func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 	url := client.buildUrl("/increment/", "", "")
 	dataSet := &BulkDataSet{
@@ -232,10 +248,12 @@ func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 	return nil
 }
 
+//Deletes a range of data from a series by id.
 func (client *Client) DeleteId(id string, start time.Time, end time.Time) error {
 	return client.deleteSeries("id", id, start, end)
 }
 
+//Deletes a range of data from a series by key.
 func (client *Client) DeleteKey(key string, start time.Time, end time.Time) error {
 	return client.deleteSeries("key", key, start, end)
 }

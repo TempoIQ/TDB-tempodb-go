@@ -17,6 +17,7 @@ type dataPoint struct {
 	V  float64   `json:"v"`
 }
 
+//Represents one timestamp/value pair.
 type DataPoint struct {
 	Ts time.Time
 	V  float64
@@ -27,20 +28,24 @@ type bulkDataSet struct {
 	Data []BulkPoint `json:"data"`
 }
 
+//Set of data to send for a bulk write.
 type BulkDataSet struct {
 	Ts   time.Time
 	Data []BulkPoint
 }
 
+//Interface representing a datapoint in a bulk write.
 type BulkPoint interface {
 	GetValue() float64
 }
 
+//Represents a datapoint for a series referenced by key.
 type BulkKeyPoint struct {
 	Key string  `json:"key"`
 	V   float64 `json:"v"`
 }
 
+//Represents a datapoint for a series referenced by id.
 type BulkIdPoint struct {
 	Id string  `json:"id"`
 	V  float64 `json:"v"`
@@ -58,6 +63,7 @@ type dataSet struct {
 	Summary map[string]float64 `json:"summary"`
 }
 
+//Respresents data from a time range of a series.
 type DataSet struct {
 	Series  Series
 	Start   time.Time
@@ -66,6 +72,7 @@ type DataSet struct {
 	Summary map[string]float64
 }
 
+//Respresents metadata associated with the series.
 type Series struct {
 	Id         string            `json:"id"`
 	Key        string            `json:"key"`
@@ -74,6 +81,7 @@ type Series struct {
 	Tags       []string          `json:"tags"`
 }
 
+//Represents a filter on the set of Series.
 type Filter struct {
 	ids        []string
 	keys       []string
@@ -81,16 +89,19 @@ type Filter struct {
 	attributes map[string]string
 }
 
+//Represents optional arguments for read operations. When not desired, use 'NullReadOptions' constant.
 type ReadOptions struct {
 	Function string
 	Interval string
 	Tz string
 }
 
+//Used to specify no read options.
 var (
 	NullReadOptions = &ReadOptions{}
 )
 
+//Call to get an initialized Filter struct
 func NewFilter() *Filter {
 	return &Filter{
 		ids:        make([]string, 0),
@@ -179,18 +190,22 @@ func (ds *DataSet) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+//Add an id to the filter query. A filter can contain many ids.
 func (filter *Filter) AddId(id string) {
 	filter.ids = append(filter.ids, id)
 }
 
+//Add a key to the filter query. A filter can contain many keys.
 func (filter *Filter) AddKey(key string) {
 	filter.keys = append(filter.keys, key)
 }
 
+//Add a tag to the filter query. A filter can contain many tags.
 func (filter *Filter) AddTag(tag string) {
 	filter.tags = append(filter.tags, tag)
 }
 
+//Add an attribute to the filter query. A filter can contain many attributes.
 func (filter *Filter) AddAttribute(key string, value string) {
 	filter.attributes[key] = value
 }
