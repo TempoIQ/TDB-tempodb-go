@@ -312,8 +312,8 @@ func (client *Client) writeSeries(series_type string, seriesVal string, data []*
 	return nil
 }
 
-func (client *Client) incrementSeries(series_type string, seriesVal string, data []*DataPoint) error {
-	endpointUrl := fmt.Sprintf("/series/%s/%s/increment/?", series_type, url.QueryEscape(seriesVal))
+func (client *Client) incrementSeries(seriesType string, seriesVal string, data []*DataPoint) error {
+	endpointUrl := fmt.Sprintf("/series/%s/%s/increment/?", seriesType, url.QueryEscape(seriesVal))
 	b, err := json.Marshal(data)
 	if err != nil {
 		return err
