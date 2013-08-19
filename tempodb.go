@@ -28,18 +28,28 @@ var (
 	NullFilter = NewFilter()
 )
 
-type TempoTime struct {
+type tempoTime struct {
 	Time time.Time
 }
 
+type dataPoint struct {
+	Ts tempoTime `json:"t"`
+	V  float64   `json:"v"`
+}
+
 type DataPoint struct {
-	Ts *TempoTime `json:"t"`
-	V  float64    `json:"v"`
+	Ts time.Time
+	V  float64
+}
+
+type bulkDataSet struct {
+	Ts   tempoTime   `json:"t"`
+	Data []BulkPoint `json:"data"`
 }
 
 type BulkDataSet struct {
-	Ts   *TempoTime  `json:"t"`
-	Data []BulkPoint `json:"data"`
+	Ts   time.Time
+	Data []BulkPoint
 }
 
 type BulkPoint interface {
@@ -66,8 +76,8 @@ type createSeriesRequest struct {
 
 type DataSet struct {
 	Series  Series             `json:"series"`
-	Start   TempoTime          `json:"start"`
-	End     TempoTime          `json:"end"`
+	Start   tempoTime          `json:"start"`
+	End     tempoTime          `json:"end"`
 	Data    []*DataPoint       `json:"data"`
 	Summary map[string]float64 `json:"summary"`
 }
@@ -110,12 +120,12 @@ func NewFilter() *Filter {
 	}
 }
 
-func (tt *TempoTime) MarshalJSON() ([]byte, error) {
+func (tt tempoTime) MarshalJSON() ([]byte, error) {
 	formatted := fmt.Sprintf("\"%s\"", tt.Time.Format(ISO8601_FMT))
 	return []byte(formatted), nil
 }
 
-func (tt *TempoTime) UnmarshalJSON(data []byte) error {
+func (tt tempoTime) UnmarshalJSON(data []byte) error {
 	b := bytes.NewBuffer(data)
 	decoded := json.NewDecoder(b)
 	var s string
@@ -127,6 +137,42 @@ func (tt *TempoTime) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	tt.Time = t
+
+	return nil
+}
+
+func (dp *DataPoint) MarshalJSON() ([]byte, error) {
+	ts := tempoTime{Time: dp.Ts}
+	pdp := &dataPoint{Ts: ts, V: dp.V}
+	return json.Marshal(pdp)
+}
+
+func (dp *DataPoint) UnmarshalJSON(data []byte) error {
+	pdp := new(dataPoint)
+	err := json.Unmarshal(data, pdp)
+	if err != nil {
+		return err
+	}
+	dp.Ts = pdp.Ts.Time
+	dp.V = pdp.V
+
+	return nil
+}
+
+func (bds *BulkDataSet) MarshalJSON() ([]byte, error) {
+	ts := tempoTime{Time: bds.Ts}
+	pbds := &bulkDataSet{Ts: ts, Data: bds.Data}
+	return json.Marshal(pbds)
+}
+
+func (bds *BulkDataSet) UnmarshalJSON(data []byte) error {
+	pbds := new(bulkDataSet)
+	err := json.Unmarshal(data, pbds)
+	if err != nil {
+		return err
+	}
+	bds.Ts = pbds.Ts.Time
+	bds.Data = pbds.Data
 
 	return nil
 }
@@ -253,7 +299,7 @@ func (client *Client) WriteKey(key string, data []*DataPoint) error {
 func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 	url := client.buildUrl("/data/", "", "")
 	dataSet := &BulkDataSet{
-		Ts:   &TempoTime{Time: ts},
+		Ts:   ts,
 		Data: data,
 	}
 	b, err := json.Marshal(dataSet)
@@ -318,7 +364,7 @@ func (client *Client) IncrementKey(key string, data []*DataPoint) error {
 func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 	url := client.buildUrl("/increment/", "", "")
 	dataSet := &BulkDataSet{
-		Ts:   &TempoTime{Time: ts},
+		Ts:   ts,
 		Data: data,
 	}
 	b, err := json.Marshal(dataSet)

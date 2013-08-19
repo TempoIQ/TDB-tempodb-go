@@ -243,11 +243,11 @@ func TestWriteKey(t *testing.T) {
 	client, remoter := NewTestClient(resp)
 	datapoints := []*DataPoint{
 		&DataPoint{
-			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			Ts: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC),
 			V:  1.23,
 		},
 		&DataPoint{
-			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
+			Ts: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC),
 			V:  3.14,
 		},
 	}
@@ -285,11 +285,11 @@ func TestWriteId(t *testing.T) {
 	client, remoter := NewTestClient(resp)
 	datapoints := []*DataPoint{
 		&DataPoint{
-			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			Ts: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC),
 			V:  1.23,
 		},
 		&DataPoint{
-			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
+			Ts: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC),
 			V:  3.14,
 		},
 	}
@@ -326,11 +326,11 @@ func TestIncrementId(t *testing.T) {
 	client, _ := NewTestClient(resp)
 	datapoints := []*DataPoint{
 		&DataPoint{
-			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			Ts: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC),
 			V:  1,
 		},
 		&DataPoint{
-			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
+			Ts: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC),
 			V:  3,
 		},
 	}
@@ -351,11 +351,11 @@ func TestIncrementKey(t *testing.T) {
 	client, _ := NewTestClient(resp)
 	datapoints := []*DataPoint{
 		&DataPoint{
-			Ts: &TempoTime{Time: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			Ts: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC),
 			V:  1,
 		},
 		&DataPoint{
-			Ts: &TempoTime{Time: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)},
+			Ts: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC),
 			V:  3,
 		},
 	}
