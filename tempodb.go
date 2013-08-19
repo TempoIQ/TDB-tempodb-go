@@ -47,7 +47,7 @@ func NewClient(key string, secret string) *Client {
 }
 
 func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
-	url := client.buildUrl("/series?", "", filter.encodeUrl())
+	url := client.buildUrl("/series?", "", filter.Url().Encode())
 	resp, err := client.makeRequest(url, "GET", []byte{})
 	if err != nil {
 		return nil, err
@@ -167,8 +167,8 @@ func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 	return nil
 }
 
-func (client *Client) Read(start time.Time, end time.Time, filter *Filter) ([]*DataSet, error) {
-	url := client.buildUrl("/data?", client.encodeTimes(start, end), filter.encodeUrl())
+func (client *Client) Read(start time.Time, end time.Time, filter *Filter, readOpts *ReadOptions) ([]*DataSet, error) {
+	url := client.buildUrl("/data?", client.encodeTimes(start, end), urlMerge(filter.Url(), readOpts.Url()).Encode())
 	resp, err := client.makeRequest(url, "GET", []byte{})
 	if err != nil {
 		return nil, err
@@ -190,12 +190,12 @@ func (client *Client) Read(start time.Time, end time.Time, filter *Filter) ([]*D
 	return datasets, nil
 }
 
-func (client *Client) ReadKey(key string, start time.Time, end time.Time) (*DataSet, error) {
-	return client.readSeries("key", key, start, end)
+func (client *Client) ReadKey(key string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
+	return client.readSeries("key", key, start, end, readOpts)
 }
 
-func (client *Client) ReadId(id string, start time.Time, end time.Time) (*DataSet, error) {
-	return client.readSeries("id", id, start, end)
+func (client *Client) ReadId(id string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
+	return client.readSeries("id", id, start, end, readOpts)
 }
 
 func (client *Client) IncrementId(id string, data []*DataPoint) error {
@@ -240,9 +240,9 @@ func (client *Client) DeleteKey(key string, start time.Time, end time.Time) erro
 	return client.deleteSeries("key", key, start, end)
 }
 
-func (client *Client) readSeries(series_type string, seriesVal string, start time.Time, end time.Time) (*DataSet, error) {
+func (client *Client) readSeries(series_type string, seriesVal string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
-	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end), "")
+	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end), readOpts.Url().Encode())
 	resp, err := client.makeRequest(url, "GET", []byte{})
 	if err != nil {
 		return nil, err
@@ -348,27 +348,6 @@ func (client *Client) encodeTimes(start time.Time, end time.Time) string {
 	endStr := end.Format(ISO8601_FMT)
 	v.Add("start", startStr)
 	v.Add("end", endStr)
-
-	return v.Encode()
-}
-
-func (filter *Filter) encodeUrl() string {
-	v := url.Values{}
-	for _, id := range filter.Ids {
-		v.Add("id", id)
-	}
-
-	for _, key := range filter.Keys {
-		v.Add("key", key)
-	}
-
-	for _, tag := range filter.Tags {
-		v.Add("tag", tag)
-	}
-
-	for key, value := range filter.Attributes {
-		v.Add(fmt.Sprintf("attr[%s]", key), value)
-	}
 
 	return v.Encode()
 }

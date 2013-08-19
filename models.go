@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -79,6 +80,16 @@ type Filter struct {
 	Tags       []string
 	Attributes map[string]string
 }
+
+type ReadOptions struct {
+	Function string
+	Interval string
+	Tz string
+}
+
+var (
+	NullReadOptions = &ReadOptions{}
+)
 
 func NewFilter() *Filter {
 	return &Filter{
@@ -192,3 +203,40 @@ func (bp *BulkIdPoint) GetValue() float64 {
 	return bp.V
 }
 
+func (readOpts *ReadOptions) Url() url.Values {
+	v := url.Values{}
+	if readOpts.Interval != "" {
+		v.Add("interval", readOpts.Interval)
+	}
+
+	if readOpts.Function != "" {
+		v.Add("function", readOpts.Function)
+	}
+
+	if readOpts.Tz != "" {
+		v.Add("tz", readOpts.Tz)
+	}
+
+	return v
+}
+
+func (filter *Filter) Url() url.Values {
+	v := url.Values{}
+	for _, id := range filter.Ids {
+		v.Add("id", id)
+	}
+
+	for _, key := range filter.Keys {
+		v.Add("key", key)
+	}
+
+	for _, tag := range filter.Tags {
+		v.Add("tag", tag)
+	}
+
+	for key, value := range filter.Attributes {
+		v.Add(fmt.Sprintf("attr[%s]", key), value)
+	}
+
+	return v
+}

@@ -163,8 +163,8 @@ func TestReadKey(t *testing.T) {
 
 	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
 	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
-	id := "3c9b4f3a19114a7eb670ff7c4917f315"
-	dataset, err := client.ReadId(id, startTime, endTime)
+	key := "getting_started"
+	dataset, err := client.ReadKey(key, startTime, endTime, NullReadOptions)
 
 	if err != nil {
 		t.Error(err)
@@ -172,10 +172,63 @@ func TestReadKey(t *testing.T) {
 		return
 	}
 
-	if dataset.Series.Id != id {
-		t.Errorf("Expected id to be %s but was %s", id, dataset.Series.Id)
+	if dataset.Series.Key != key {
+		t.Errorf("Expected key to be %s but was %s", key, dataset.Series.Key)
 	}
 
+}
+
+func TestReadKeyWithOptions(t *testing.T) {
+	body := makeBody(testFixture("read_id_and_key.json"))
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       body,
+	}
+
+	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+	key := "getting_started"
+	client, remoter := NewTestClient(resp)
+	opts := &ReadOptions{
+		Interval: "2day",
+		Function: "sum",
+		Tz: "America/Chicago",
+	}
+	_, err := client.ReadKey(key, startTime, endTime, opts)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	req := remoter.LastRequest()
+	req.ParseForm()
+
+	if req.Form.Get("start") == "" {
+		t.Errorf("Request URL must contain the 'start' query param")
+
+		return
+	}
+	if req.Form.Get("end") == "" {
+		t.Errorf("Request URL must contain the 'end' query param")
+
+		return
+	}
+	if req.Form.Get("interval") == "" {
+		t.Errorf("Request URL must contain the 'interval' query param")
+
+		return
+	}
+	if req.Form.Get("function") == "" {
+		t.Errorf("Request URL must contain the 'function' query param")
+
+		return
+	}
+	if req.Form.Get("tz") == "" {
+		t.Errorf("Request URL must contain the 'tz' query param")
+
+		return
+	}
 }
 
 func TestReadId(t *testing.T) {
@@ -190,8 +243,8 @@ func TestReadId(t *testing.T) {
 
 	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
 	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
-	key := "getting_started"
-	dataset, err := client.ReadId(key, startTime, endTime)
+	id := "3c9b4f3a19114a7eb670ff7c4917f315"
+	dataset, err := client.ReadId(id, startTime, endTime, NullReadOptions)
 
 	if err != nil {
 		t.Error(err)
@@ -199,10 +252,63 @@ func TestReadId(t *testing.T) {
 		return
 	}
 
-	if dataset.Series.Key != key {
-		t.Errorf("Expected key to be %s but was %s", key, dataset.Series.Key)
+	if dataset.Series.Id != id {
+		t.Errorf("Expected id to be %s but was %s", id, dataset.Series.Id)
 	}
 
+}
+
+func TestReadIdWithOptions(t *testing.T) {
+	body := makeBody(testFixture("read_id_and_key.json"))
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       body,
+	}
+
+	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+	id := "3c9b4f3a19114a7eb670ff7c4917f315"
+	client, remoter := NewTestClient(resp)
+	opts := &ReadOptions{
+		Interval: "2day",
+		Function: "sum",
+		Tz: "America/Chicago",
+	}
+	_, err := client.ReadId(id, startTime, endTime, opts)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	req := remoter.LastRequest()
+	req.ParseForm()
+
+	if req.Form.Get("start") == "" {
+		t.Errorf("Request URL must contain the 'start' query param")
+
+		return
+	}
+	if req.Form.Get("end") == "" {
+		t.Errorf("Request URL must contain the 'end' query param")
+
+		return
+	}
+	if req.Form.Get("interval") == "" {
+		t.Errorf("Request URL must contain the 'interval' query param")
+
+		return
+	}
+	if req.Form.Get("function") == "" {
+		t.Errorf("Request URL must contain the 'function' query param")
+
+		return
+	}
+	if req.Form.Get("tz") == "" {
+		t.Errorf("Request URL must contain the 'tz' query param")
+
+		return
+	}
 }
 
 func TestRead(t *testing.T) {
@@ -219,7 +325,7 @@ func TestRead(t *testing.T) {
 	client, _ := NewTestClient(resp)
 	filter := NewFilter()
 	filter.AddAttribute("thermostat", "1")
-	datasets, err := client.Read(startTime, endTime, filter)
+	datasets, err := client.Read(startTime, endTime, filter, NullReadOptions)
 	if err != nil {
 		t.Error(err)
 
@@ -228,6 +334,61 @@ func TestRead(t *testing.T) {
 	expectedLength := 2
 	if len(datasets) != expectedLength {
 		t.Errorf("Expected length of datasets to be %d but was %d", expectedLength, len(datasets))
+
+		return
+	}
+}
+
+func TestReadWithOptions(t *testing.T) {
+	body := makeBody(testFixture("read.json"))
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       body,
+	}
+
+	startTime := time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endTime := time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)
+
+	client, remoter := NewTestClient(resp)
+	filter := NewFilter()
+	filter.AddAttribute("thermostat", "1")
+	opts := &ReadOptions{
+		Interval: "2day",
+		Function: "sum",
+		Tz: "America/Chicago",
+	}
+	_, err := client.Read(startTime, endTime, filter, opts)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	req := remoter.LastRequest()
+	req.ParseForm()
+
+	if req.Form.Get("start") == "" {
+		t.Errorf("Request URL must contain the 'start' query param")
+
+		return
+	}
+	if req.Form.Get("end") == "" {
+		t.Errorf("Request URL must contain the 'end' query param")
+
+		return
+	}
+	if req.Form.Get("interval") == "" {
+		t.Errorf("Request URL must contain the 'interval' query param")
+
+		return
+	}
+	if req.Form.Get("function") == "" {
+		t.Errorf("Request URL must contain the 'function' query param")
+
+		return
+	}
+	if req.Form.Get("tz") == "" {
+		t.Errorf("Request URL must contain the 'tz' query param")
 
 		return
 	}
