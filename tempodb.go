@@ -74,12 +74,20 @@ type createSeriesRequest struct {
 	Key string
 }
 
-type DataSet struct {
+type dataSet struct {
 	Series  Series             `json:"series"`
 	Start   tempoTime          `json:"start"`
 	End     tempoTime          `json:"end"`
 	Data    []*DataPoint       `json:"data"`
 	Summary map[string]float64 `json:"summary"`
+}
+
+type DataSet struct {
+	Series  Series
+	Start   time.Time
+	End     time.Time
+	Data    []*DataPoint
+	Summary map[string]float64
 }
 
 type Series struct {
@@ -173,6 +181,28 @@ func (bds *BulkDataSet) UnmarshalJSON(data []byte) error {
 	}
 	bds.Ts = pbds.Ts.Time
 	bds.Data = pbds.Data
+
+	return nil
+}
+
+func (ds *DataSet) MarshalJSON() ([]byte, error) {
+	start := tempoTime{Time: ds.Start}
+	end := tempoTime{Time: ds.End}
+	pds := &dataSet{Start: start, End: end, Data: ds.Data, Series: ds.Series, Summary: ds.Summary}
+	return json.Marshal(pds)
+}
+
+func (ds *DataSet) UnmarshalJSON(data []byte) error {
+	pds := new(dataSet)
+	err := json.Unmarshal(data, pds)
+	if err != nil {
+		return err
+	}
+	ds.Start = pds.Start.Time
+	ds.End = pds.End.Time
+	ds.Series = pds.Series
+	ds.Data = pds.Data
+	ds.Summary = pds.Summary
 
 	return nil
 }
