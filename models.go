@@ -52,7 +52,7 @@ type BulkIdPoint struct {
 }
 
 type createSeriesRequest struct {
-	Key string
+	Key string `json:"key"`
 }
 
 type dataSet struct {
