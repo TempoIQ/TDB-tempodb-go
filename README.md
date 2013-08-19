@@ -25,7 +25,7 @@ func main() {
          if err != nil {
                log.Fatal(err)  
          }
-         fmt.Println(created)
+         log.Println(created)
 }
 ```
 
