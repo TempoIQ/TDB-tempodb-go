@@ -83,6 +83,28 @@ func TestGetSeries(t *testing.T) {
 	}
 }
 
+func TestDeleteSeries(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       makeBody(testFixture("delete_series.json")),
+	}
+	client, _ := NewTestClient(resp)
+	filter := NewFilter().AddTag("one").AddTag("two")
+	summary, err := client.DeleteSeries(filter)
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	expectedDeleted := 2
+	if summary.Deleted != expectedDeleted {
+		t.Errorf("Expected delete count to be %d, but was %d", expectedDeleted, summary.Deleted)
+
+		return
+	}
+}
+
 func TestCreateSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
@@ -193,7 +215,7 @@ func TestReadKeyWithOptions(t *testing.T) {
 	opts := &ReadOptions{
 		Interval: "2day",
 		Function: "sum",
-		Tz: "America/Chicago",
+		Tz:       "America/Chicago",
 	}
 	_, err := client.ReadKey(key, startTime, endTime, opts)
 	if err != nil {
@@ -273,7 +295,7 @@ func TestReadIdWithOptions(t *testing.T) {
 	opts := &ReadOptions{
 		Interval: "2day",
 		Function: "sum",
-		Tz: "America/Chicago",
+		Tz:       "America/Chicago",
 	}
 	_, err := client.ReadId(id, startTime, endTime, opts)
 	if err != nil {
@@ -356,7 +378,7 @@ func TestReadWithOptions(t *testing.T) {
 	opts := &ReadOptions{
 		Interval: "2day",
 		Function: "sum",
-		Tz: "America/Chicago",
+		Tz:       "America/Chicago",
 	}
 	_, err := client.Read(startTime, endTime, filter, opts)
 	if err != nil {
@@ -646,11 +668,7 @@ func TestFilterEncoding(t *testing.T) {
 	expectedKey := "key1"
 	expectedTag := "tag1"
 	expectedAttribute := "value"
-	filter := NewFilter()
-	filter.AddId(expectedId)
-	filter.AddKey(expectedKey)
-	filter.AddTag(expectedTag)
-	filter.AddAttribute("key", expectedAttribute)
+	filter := NewFilter().AddId(expectedId).AddKey(expectedKey).AddTag(expectedTag).AddAttribute("key", expectedAttribute)
 	_, err := client.GetSeries(filter)
 	if err != nil {
 		t.Error(err)

@@ -113,6 +113,30 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 	return &series, nil
 }
 
+//Deletes a list of series matching the provided Filter
+func (client *Client) DeleteSeries(filter *Filter) (*DeleteSummary, error) {
+	url := client.buildUrl("/series?", filter.Url().Encode())
+	resp, err := client.makeRequest(url, "DELETE", []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, httpError(resp.Status, b)
+	}
+	var summary DeleteSummary
+	err = json.Unmarshal(b, &summary)
+	if err != nil {
+		return nil, err
+	}
+
+	return &summary, nil
+}
+
 //Updates a Series's metadata.
 func (client *Client) UpdateSeries(series *Series) (*Series, error) {
 	endpointUrl := fmt.Sprintf("/series/id/%s/", url.QueryEscape(series.Id))
