@@ -105,6 +105,27 @@ func TestDeleteSeries(t *testing.T) {
 	}
 }
 
+func TestDeleteAllSeries(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: 200,
+		Status:     "200 OK",
+		Body:       makeBody(testFixture("delete_series.json")),
+	}
+	client, _ := NewTestClient(resp)
+	summary, err := client.DeleteAllSeries()
+	if err != nil {
+		t.Error(err)
+
+		return
+	}
+	expectedDeleted := 2
+	if summary.Deleted != expectedDeleted {
+		t.Errorf("Expected delete count to be %d, but was %d", expectedDeleted, summary.Deleted)
+
+		return
+	}
+}
+
 func TestCreateSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,
