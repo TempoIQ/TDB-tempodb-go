@@ -113,6 +113,20 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 	return &series, nil
 }
 
+//Deletes a list of series matching the provided Filter
+func (client *Client) DeleteSeries(filter *Filter) (*DeleteSummary, error) {
+	url := client.buildUrl("/series?", filter.Url().Encode())
+
+	return client.deleteSeries(url)
+}
+
+//Deletes all series in a database
+func (client *Client) DeleteAllSeries() (*DeleteSummary, error) {
+	url := client.buildUrl("/series/?allow_truncation=true", "")
+
+	return client.deleteSeries(url)
+}
+
 //Updates a Series's metadata.
 func (client *Client) UpdateSeries(series *Series) (*Series, error) {
 	endpointUrl := fmt.Sprintf("/series/id/%s/", url.QueryEscape(series.Id))
@@ -252,12 +266,12 @@ func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 
 //Deletes a range of data from a series by id.
 func (client *Client) DeleteId(id string, start time.Time, end time.Time) error {
-	return client.deleteSeries("id", id, start, end)
+	return client.deleteDataFromSeries("id", id, start, end)
 }
 
 //Deletes a range of data from a series by key.
 func (client *Client) DeleteKey(key string, start time.Time, end time.Time) error {
-	return client.deleteSeries("key", key, start, end)
+	return client.deleteDataFromSeries("key", key, start, end)
 }
 
 func (client *Client) readSeries(series_type string, seriesVal string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
@@ -335,7 +349,29 @@ func (client *Client) incrementSeries(seriesType string, seriesVal string, data 
 	return nil
 }
 
-func (client *Client) deleteSeries(series_type string, seriesVal string, start time.Time, end time.Time) error {
+func (client *Client) deleteSeries(url string) (*DeleteSummary, error) {
+	resp, err := client.makeRequest(url, "DELETE", []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, httpError(resp.Status, b)
+	}
+	var summary DeleteSummary
+	err = json.Unmarshal(b, &summary)
+	if err != nil {
+		return nil, err
+	}
+
+	return &summary, nil
+}
+
+func (client *Client) deleteDataFromSeries(series_type string, seriesVal string, start time.Time, end time.Time) error {
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
 	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end).Encode())
 	resp, err := client.makeRequest(url, "DELETE", []byte{})
