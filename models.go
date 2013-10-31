@@ -89,11 +89,15 @@ type Filter struct {
 	attributes map[string]string
 }
 
+type DeleteSummary struct {
+	Deleted int `json:"deleted"`
+}
+
 //Represents optional arguments for read operations. When not desired, use 'NullReadOptions' constant.
 type ReadOptions struct {
 	Function string
 	Interval string
-	Tz string
+	Tz       string
 }
 
 //Used to specify no read options.
@@ -191,23 +195,27 @@ func (ds *DataSet) UnmarshalJSON(data []byte) error {
 }
 
 //Add an id to the filter query. A filter can contain many ids.
-func (filter *Filter) AddId(id string) {
+func (filter *Filter) AddId(id string) *Filter {
 	filter.ids = append(filter.ids, id)
+	return filter
 }
 
 //Add a key to the filter query. A filter can contain many keys.
-func (filter *Filter) AddKey(key string) {
+func (filter *Filter) AddKey(key string) *Filter {
 	filter.keys = append(filter.keys, key)
+	return filter
 }
 
 //Add a tag to the filter query. A filter can contain many tags.
-func (filter *Filter) AddTag(tag string) {
+func (filter *Filter) AddTag(tag string) *Filter {
 	filter.tags = append(filter.tags, tag)
+	return filter
 }
 
 //Add an attribute to the filter query. A filter can contain many attributes.
-func (filter *Filter) AddAttribute(key string, value string) {
+func (filter *Filter) AddAttribute(key string, value string) *Filter {
 	filter.attributes[key] = value
+	return filter
 }
 
 func (bp *BulkKeyPoint) GetValue() float64 {
