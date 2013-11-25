@@ -1,6 +1,7 @@
 package tempodb
 
 import (
+	"io"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -49,7 +50,7 @@ func NewClient(key string, secret string) *Client {
 //Gets a list of series filtered by the provided Filter.
 func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	url := client.buildUrl("/series?", filter.Url().Encode())
-	response, err := client.makeRequest(url, "GET", []byte{})
+	response, err := client.makeRequest(url, "GET", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +148,7 @@ func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 //Reads a list of DataSet by the provided filter and rolluped by the interval
 func (client *Client) Read(start time.Time, end time.Time, filter *Filter, readOpts *ReadOptions) ([]*DataSet, error) {
 	url := client.buildUrl("/data?", urlMerge(client.encodeTimes(start, end), filter.Url(), readOpts.Url()).Encode())
-	response, err := client.makeRequest(url, "GET", []byte{})
+	response, err := client.makeRequest(url, "GET", nil)
 	var datasets []*DataSet
 	err = json.Unmarshal(response, &datasets)
 	if err != nil {
@@ -205,7 +206,7 @@ func (client *Client) DeleteKey(key string, start time.Time, end time.Time) erro
 func (client *Client) readSeries(series_type string, seriesVal string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
 	url := client.buildUrl(endpointUrl, urlMerge(client.encodeTimes(start, end), readOpts.Url()).Encode())
-	response, err := client.makeRequest(url, "GET", []byte{})
+	response, err := client.makeRequest(url, "GET", nil)
 	var dataset DataSet
 	err = json.Unmarshal(response, &dataset)
 	if err != nil {
@@ -239,7 +240,7 @@ func (client *Client) incrementSeries(seriesType string, seriesVal string, data 
 }
 
 func (client *Client) deleteSeries(url string) (*DeleteSummary, error) {
-	response, err := client.makeRequest(url, "DELETE", []byte{})
+	response, err := client.makeRequest(url, "DELETE", nil)
 	var summary DeleteSummary
 	err = json.Unmarshal(response, &summary)
 	if err != nil {
@@ -252,7 +253,7 @@ func (client *Client) deleteSeries(url string) (*DeleteSummary, error) {
 func (client *Client) deleteDataFromSeries(series_type string, seriesVal string, start time.Time, end time.Time) error {
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
 	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end).Encode())
-	_, err := client.makeRequest(url, "DELETE", []byte{})
+	_, err := client.makeRequest(url, "DELETE", nil)
 	return err
 }
 
@@ -278,12 +279,17 @@ func (client *Client) encodeTimes(start time.Time, end time.Time) url.Values {
 }
 
 func (client *Client) makeRequest(url, method string, data []byte) ([]byte, error) {
-	req, err := http.NewRequest(method, url, bytes.NewReader(data))
+	var postBody io.Reader
+	if data != nil {
+		postBody = bytes.NewReader(data)
+	}
+	req, err := http.NewRequest(method, url, postBody)
 	if err != nil {
 		return nil, err
 	}
 	req.SetBasicAuth(client.Key, client.Secret)
 	req.Header["User-Agent"] = USER_AGENT
+
 	resp, err := client.Remoter.Do(req)
 	if err != nil {
 		return nil, err
