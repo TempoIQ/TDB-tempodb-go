@@ -46,22 +46,6 @@ func NewTestClient(resp *http.Response) (*Client, *MockRemoter) {
 	return client, remoter
 }
 
-func TestRegexMatching(t *testing.T) {
-	client, _ := NewTestClient(&http.Response{StatusCode: 200, Body: makeBody(testFixture("create_series.json"))})
-	_, err := client.CreateSeries("#")
-	if err == nil {
-		t.Errorf("Should be invalid")
-
-		return
-	}
-	_, err = client.CreateSeries("validkey")
-	if err != nil {
-		t.Error(err)
-
-		return
-	}
-}
-
 func TestGetSeries(t *testing.T) {
 	resp := &http.Response{
 		StatusCode: 200,

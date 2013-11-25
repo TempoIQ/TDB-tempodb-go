@@ -8,12 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"regexp"
 	"time"
-)
-
-var (
-	ERR_INVALID_KEY = errors.New("Key is not in the correct format")
 )
 
 const (
@@ -77,12 +72,6 @@ func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 
 //Creates a new series in the database.
 func (client *Client) CreateSeries(key string) (*Series, error) {
-	matched, _ := regexp.MatchString(`^[a-zA-Z0-9\.:;\-_/\\ ]*$`, key)
-
-	if matched == false {
-		return nil, ERR_INVALID_KEY
-	}
-
 	cr := &createSeriesRequest{key}
 	reqBody, err := json.Marshal(cr)
 	if err != nil {
