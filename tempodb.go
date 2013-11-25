@@ -50,8 +50,8 @@ func NewClient(key string, secret string) *Client {
 //Gets a list of series filtered by the provided Filter.
 func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	var series []*Series
-	url := client.buildUrl("/series?", filter.Url().Encode())
-	err := client.makeRequest(url, "GET", nil, &series)
+	url := client.buildUrl("series", filter.Url())
+	err := client.makeRequest("GET", url, nil, &series)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +62,8 @@ func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 func (client *Client) CreateSeries(key string) (*Series, error) {
 	input := &createSeriesRequest{key}
 	series := new(Series)
-	url := client.buildUrl("/series/", "")
-	err := client.makeRequest(url, "POST", input, series)
+	url := client.buildUrl("series")
+	err := client.makeRequest("POST", url, input, series)
 	if err != nil {
 		return nil, err
 	}
@@ -72,22 +72,22 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 
 //Deletes a list of series matching the provided Filter
 func (client *Client) DeleteSeries(filter *Filter) (*DeleteSummary, error) {
-	url := client.buildUrl("/series?", filter.Url().Encode())
+	url := client.buildUrl("series", filter.Url())
 	return client.deleteSeries(url)
 }
 
 //Deletes all series in a database
 func (client *Client) DeleteAllSeries() (*DeleteSummary, error) {
-	url := client.buildUrl("/series/?allow_truncation=true", "")
+	url := client.buildUrl("series?allow_truncation=true")
 	return client.deleteSeries(url)
 }
 
 //Updates a Series's metadata.
 func (client *Client) UpdateSeries(series *Series) (*Series, error) {
 	output := new(Series)
-	endpointUrl := fmt.Sprintf("/series/id/%s/", url.QueryEscape(series.Id))
-	url := client.buildUrl(endpointUrl, "")
-	err := client.makeRequest(url, "PUT", series, output)
+	endpoint := fmt.Sprintf("series/id/%s", url.QueryEscape(series.Id))
+	url := client.buildUrl(endpoint)
+	err := client.makeRequest("PUT", url, series, output)
 	if err != nil {
 		return nil, err
 	}
@@ -110,15 +110,15 @@ func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 		Ts:   ts,
 		Data: data,
 	}
-	url := client.buildUrl("/data/", "")
-	return client.makeRequest(url, "POST", dataSet, nil)
+	url := client.buildUrl("data")
+	return client.makeRequest("POST", url, dataSet, nil)
 }
 
 //Reads a list of DataSet by the provided filter and rolluped by the interval
 func (client *Client) Read(start time.Time, end time.Time, filter *Filter, readOpts *ReadOptions) ([]*DataSet, error) {
 	var datasets []*DataSet
-	url := client.buildUrl("/data?", urlMerge(client.encodeTimes(start, end), filter.Url(), readOpts.Url()).Encode())
-	err := client.makeRequest(url, "GET", nil, &datasets)
+	url := client.buildUrl("data", encodeTimes(start, end), filter.Url(), readOpts.Url())
+	err := client.makeRequest("GET", url, nil, &datasets)
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +151,8 @@ func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 		Ts:   ts,
 		Data: data,
 	}
-	url := client.buildUrl("/increment/", "")
-	return client.makeRequest(url, "POST", dataSet, nil)
+	url := client.buildUrl("increment")
+	return client.makeRequest("POST", url, dataSet, nil)
 }
 
 //Deletes a range of data from a series by id.
@@ -165,66 +165,63 @@ func (client *Client) DeleteKey(key string, start time.Time, end time.Time) erro
 	return client.deleteDataFromSeries("key", key, start, end)
 }
 
-func (client *Client) readSeries(series_type string, seriesVal string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
+func (client *Client) readSeries(seriesType string, seriesValue string, start time.Time, end time.Time, readOpts *ReadOptions) (*DataSet, error) {
 	dataset := new(DataSet)
-	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
-	url := client.buildUrl(endpointUrl, urlMerge(client.encodeTimes(start, end), readOpts.Url()).Encode())
-	err := client.makeRequest(url, "GET", nil, dataset)
+	endpoint := fmt.Sprintf("series/%s/%s/data", seriesType, url.QueryEscape(seriesValue))
+	url := client.buildUrl(endpoint, encodeTimes(start, end), readOpts.Url())
+	err := client.makeRequest("GET", url, nil, dataset)
 	if err != nil {
 		return nil, err
 	}
 	return dataset, nil
 }
 
-func (client *Client) writeSeries(series_type string, seriesVal string, data []*DataPoint) error {
-	endpointUrl := fmt.Sprintf("/series/%s/%s/data/", series_type, url.QueryEscape(seriesVal))
-	url := client.buildUrl(endpointUrl, "")
-	return client.makeRequest(url, "POST", data, nil)
+func (client *Client) writeSeries(seriesType string, seriesValue string, data []*DataPoint) error {
+	endpoint := fmt.Sprintf("series/%s/%s/data", seriesType, url.QueryEscape(seriesValue))
+	url := client.buildUrl(endpoint)
+	return client.makeRequest("POST", url, data, nil)
 }
 
-func (client *Client) incrementSeries(seriesType string, seriesVal string, data []*DataPoint) error {
-	endpointUrl := fmt.Sprintf("/series/%s/%s/increment/?", seriesType, url.QueryEscape(seriesVal))
-	url := client.buildUrl(endpointUrl, "")
-	return client.makeRequest(url, "POST", data, nil)
+func (client *Client) incrementSeries(seriesType string, seriesValue string, data []*DataPoint) error {
+	endpoint := fmt.Sprintf("series/%s/%s/increment", seriesType, url.QueryEscape(seriesValue))
+	url := client.buildUrl(endpoint)
+	return client.makeRequest("POST", url, data, nil)
 }
 
 func (client *Client) deleteSeries(url string) (*DeleteSummary, error) {
 	summary := new(DeleteSummary)
-	err := client.makeRequest(url, "DELETE", nil, summary)
+	err := client.makeRequest("DELETE", url, nil, summary)
 	if err != nil {
 		return nil, err
 	}
 	return summary, nil
 }
 
-func (client *Client) deleteDataFromSeries(series_type string, seriesVal string, start time.Time, end time.Time) error {
-	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
-	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end).Encode())
-	return client.makeRequest(url, "DELETE", nil, nil)
+func (client *Client) deleteDataFromSeries(seriesType string, seriesValue string, start time.Time, end time.Time) error {
+	endpoint := fmt.Sprintf("series/%s/%s/data", seriesType, url.QueryEscape(seriesValue))
+	url := client.buildUrl(endpoint, encodeTimes(start, end))
+	return client.makeRequest("DELETE", url, nil, nil)
 }
 
-func (client *Client) buildUrl(endpoint string, paramsStr string) string {
+func (client *Client) buildUrl(endpoint string, params ...url.Values) string {
 	var proto string
 	if client.Secure {
 		proto = "https://"
 	} else {
 		proto = "http://"
 	}
+	base := proto + client.Host + "/v1/" + endpoint
+	switch len(params) {
+	case 0:
+		return base
+	case 1:
+		return base + "?" + params[0].Encode()
+	}
 
-	return proto + client.Host + "/v1" + endpoint + paramsStr
+	return base + "?" + urlMerge(params).Encode()
 }
 
-func (client *Client) encodeTimes(start time.Time, end time.Time) url.Values {
-	v := url.Values{}
-	startStr := start.Format(ISO8601_FMT)
-	endStr := end.Format(ISO8601_FMT)
-	v.Add("start", startStr)
-	v.Add("end", endStr)
-
-	return v
-}
-
-func (client *Client) makeRequest(url, method string, input, output interface{}) (error) {
+func (client *Client) makeRequest(method, url string, input, output interface{}) (error) {
 	var postBody io.Reader
 	if input != nil {
 		encoded, err := json.Marshal(input)
