@@ -40,7 +40,7 @@ func testFixture(name string) string {
 }
 
 func NewTestClient(resp *http.Response) (*Client, *MockRemoter) {
-	client := NewClient("key", "secret")
+	client := New("key", "secret")
 	remoter := &MockRemoter{resp, nil}
 	client.Remoter = remoter
 	return client, remoter
@@ -220,7 +220,7 @@ func TestReadKeyWithOptions(t *testing.T) {
 	opts := &ReadOptions{
 		Interval: "2day",
 		Function: "sum",
-		Tz:       "America/Chicago",
+		Timezone: "America/Chicago",
 	}
 	_, err := client.ReadKey(key, startTime, endTime, opts)
 	if err != nil {
@@ -300,7 +300,7 @@ func TestReadIdWithOptions(t *testing.T) {
 	opts := &ReadOptions{
 		Interval: "2day",
 		Function: "sum",
-		Tz:       "America/Chicago",
+		Timezone: "America/Chicago",
 	}
 	_, err := client.ReadId(id, startTime, endTime, opts)
 	if err != nil {
@@ -383,7 +383,7 @@ func TestReadWithOptions(t *testing.T) {
 	opts := &ReadOptions{
 		Interval: "2day",
 		Function: "sum",
-		Tz:       "America/Chicago",
+		Timezone: "America/Chicago",
 	}
 	_, err := client.Read(startTime, endTime, filter, opts)
 	if err != nil {
@@ -429,14 +429,14 @@ func TestWriteKey(t *testing.T) {
 	}
 
 	client, remoter := NewTestClient(resp)
-	datapoints := []*DataPoint{
-		&DataPoint{
-			Ts: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC),
-			V:  1.23,
+	datapoints := []DataPoint{
+		DataPoint{
+			Timestamp: TempoTime(time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			Value:  1.23,
 		},
-		&DataPoint{
-			Ts: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC),
-			V:  3.14,
+		DataPoint{
+			Timestamp: TempoTime(time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)),
+			Value:  3.14,
 		},
 	}
 
@@ -471,14 +471,14 @@ func TestWriteId(t *testing.T) {
 	}
 
 	client, remoter := NewTestClient(resp)
-	datapoints := []*DataPoint{
-		&DataPoint{
-			Ts: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC),
-			V:  1.23,
+	datapoints := []DataPoint{
+		DataPoint{
+			Timestamp: TempoTime(time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			Value:  1.23,
 		},
-		&DataPoint{
-			Ts: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC),
-			V:  3.14,
+		DataPoint{
+			Timestamp: TempoTime(time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)),
+			Value:  3.14,
 		},
 	}
 
@@ -512,14 +512,14 @@ func TestIncrementId(t *testing.T) {
 		Body:       makeBody(""),
 	}
 	client, _ := NewTestClient(resp)
-	datapoints := []*DataPoint{
-		&DataPoint{
-			Ts: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC),
-			V:  1,
+	datapoints := []DataPoint{
+		DataPoint{
+			Timestamp: TempoTime(time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			Value:  1,
 		},
-		&DataPoint{
-			Ts: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC),
-			V:  3,
+		DataPoint{
+			Timestamp: TempoTime(time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)),
+			Value:  3,
 		},
 	}
 	err := client.IncrementId("0aeef415ce734b02af5325f6ad977e26", datapoints)
@@ -537,14 +537,14 @@ func TestIncrementKey(t *testing.T) {
 		Body:       makeBody(""),
 	}
 	client, _ := NewTestClient(resp)
-	datapoints := []*DataPoint{
-		&DataPoint{
-			Ts: time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC),
-			V:  1,
+	datapoints := []DataPoint{
+		DataPoint{
+			Timestamp: TempoTime(time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			Value:  1,
 		},
-		&DataPoint{
-			Ts: time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC),
-			V:  3,
+		DataPoint{
+			Timestamp: TempoTime(time.Date(2012, time.February, 1, 0, 0, 0, 0, time.UTC)),
+			Value:  3,
 		},
 	}
 	err := client.IncrementKey("key1", datapoints)
@@ -566,11 +566,11 @@ func TestIncrementBulk(t *testing.T) {
 	dataset := []BulkPoint{
 		&BulkKeyPoint{
 			Key: "your-custom-key",
-			V:   1,
+			Value:   1,
 		},
 		&BulkIdPoint{
 			Id: "01868c1a2aaf416ea6cd8edd65e7a4b8",
-			V:  4,
+			Value:  4,
 		},
 	}
 	err := client.IncrementBulk(time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC), dataset)
@@ -636,11 +636,11 @@ func TestWriteBulk(t *testing.T) {
 	dataset := []BulkPoint{
 		&BulkKeyPoint{
 			Key: "your-custom-key",
-			V:   1.23,
+			Value:   1.23,
 		},
 		&BulkIdPoint{
 			Id: "01868c1a2aaf416ea6cd8edd65e7a4b8",
-			V:  3.14,
+			Value:  3.14,
 		},
 	}
 	err := client.WriteBulk(time.Date(2012, time.January, 1, 0, 0, 0, 0, time.UTC), dataset)

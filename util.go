@@ -19,7 +19,7 @@ func urlMerge(urls []url.Values) url.Values {
 
 func encodeTimes(start time.Time, end time.Time) url.Values {
 	return url.Values{
-		"start": []string{start.Format(ISO8601_FMT)},
-		"end": []string{end.Format(ISO8601_FMT)},
+		"start": []string{start.Format(ISO8601)},
+		"end": []string{end.Format(ISO8601)},
 	}
 }

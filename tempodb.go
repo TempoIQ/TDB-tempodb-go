@@ -15,7 +15,7 @@ import (
 const (
 	API_HOSTNAME = "api.tempo-db.com"
 	API_SECURE_PORT = 443
-	ISO8601_FMT = "2006-01-02T15:04:05.000Z0700"
+	ISO8601 = "2006-01-02T15:04:05.000Z0700"
 )
 
 var (
@@ -40,7 +40,7 @@ type Client struct {
 }
 
 //Create a new client instance. Must provide your TempoDB API key and secret.
-func NewClient(key string, secret string) *Client {
+func New(key string, secret string) *Client {
 	client := &Client{Key: key, Secret: secret, Host: API_HOSTNAME, Port: API_SECURE_PORT}
 	client.Remoter = &http.Client{}
 	client.Secure = true
@@ -48,8 +48,8 @@ func NewClient(key string, secret string) *Client {
 }
 
 //Gets a list of series filtered by the provided Filter.
-func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
-	var series []*Series
+func (client *Client) GetSeries(filter *Filter) ([]Series, error) {
+	var series []Series
 	url := client.buildUrl("series", filter.Url())
 	err := client.makeRequest("GET", url, nil, &series)
 	if err != nil {
@@ -95,28 +95,28 @@ func (client *Client) UpdateSeries(series *Series) (*Series, error) {
 }
 
 //Writes a DataSet by id.
-func (client *Client) WriteId(id string, data []*DataPoint) error {
+func (client *Client) WriteId(id string, data []DataPoint) error {
 	return client.writeSeries("id", id, data)
 }
 
 //Writes a DataSet by key.
-func (client *Client) WriteKey(key string, data []*DataPoint) error {
+func (client *Client) WriteKey(key string, data []DataPoint) error {
 	return client.writeSeries("key", key, data)
 }
 
 //Writes a set of datapoints for different series for the same timestamp.
 func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 	dataSet := &BulkDataSet{
-		Ts:   ts,
 		Data: data,
+		Timestamp: TempoTime(ts),
 	}
 	url := client.buildUrl("data")
 	return client.makeRequest("POST", url, dataSet, nil)
 }
 
 //Reads a list of DataSet by the provided filter and rolluped by the interval
-func (client *Client) Read(start time.Time, end time.Time, filter *Filter, readOpts *ReadOptions) ([]*DataSet, error) {
-	var datasets []*DataSet
+func (client *Client) Read(start time.Time, end time.Time, filter *Filter, readOpts *ReadOptions) ([]DataSet, error) {
+	var datasets []DataSet
 	url := client.buildUrl("data", encodeTimes(start, end), filter.Url(), readOpts.Url())
 	err := client.makeRequest("GET", url, nil, &datasets)
 	if err != nil {
@@ -136,20 +136,20 @@ func (client *Client) ReadId(id string, start time.Time, end time.Time, readOpts
 }
 
 //Increments a DataSet by id.
-func (client *Client) IncrementId(id string, data []*DataPoint) error {
+func (client *Client) IncrementId(id string, data []DataPoint) error {
 	return client.incrementSeries("id", id, data)
 }
 
 //Increments a DataSet by key.
-func (client *Client) IncrementKey(key string, data []*DataPoint) error {
+func (client *Client) IncrementKey(key string, data []DataPoint) error {
 	return client.incrementSeries("key", key, data)
 }
 
 //Increments a set of datapoints for different series for the same timestamp.
 func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 	dataSet := &BulkDataSet{
-		Ts:   ts,
 		Data: data,
+		Timestamp: TempoTime(ts),
 	}
 	url := client.buildUrl("increment")
 	return client.makeRequest("POST", url, dataSet, nil)
@@ -176,13 +176,13 @@ func (client *Client) readSeries(seriesType string, seriesValue string, start ti
 	return dataset, nil
 }
 
-func (client *Client) writeSeries(seriesType string, seriesValue string, data []*DataPoint) error {
+func (client *Client) writeSeries(seriesType string, seriesValue string, data []DataPoint) error {
 	endpoint := fmt.Sprintf("series/%s/%s/data", seriesType, url.QueryEscape(seriesValue))
 	url := client.buildUrl(endpoint)
 	return client.makeRequest("POST", url, data, nil)
 }
 
-func (client *Client) incrementSeries(seriesType string, seriesValue string, data []*DataPoint) error {
+func (client *Client) incrementSeries(seriesType string, seriesValue string, data []DataPoint) error {
 	endpoint := fmt.Sprintf("series/%s/%s/increment", seriesType, url.QueryEscape(seriesValue))
 	url := client.buildUrl(endpoint)
 	return client.makeRequest("POST", url, data, nil)
