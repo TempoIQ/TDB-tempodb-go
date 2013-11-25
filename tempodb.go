@@ -242,9 +242,6 @@ func (client *Client) makeRequest(method, url string, input, output interface{})
 		return err
 	}
 	defer resp.Body.Close()
-	if output == nil && resp.StatusCode == http.StatusOK {
-		return nil
-	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
