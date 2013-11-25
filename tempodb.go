@@ -17,14 +17,13 @@ var (
 )
 
 const (
-	API_HOSTNAME    = "api.tempo-db.com"
+	API_HOSTNAME = "api.tempo-db.com"
 	API_SECURE_PORT = 443
-	ISO8601_FMT     = "2006-01-02T15:04:05.000Z0700"
-	VERSION         = "0.1"
+	ISO8601_FMT = "2006-01-02T15:04:05.000Z0700"
+	USER_AGENT = "tempodb-go/0.2"
 )
 
 var (
-	USER_AGENT = fmt.Sprintf("%s/%s", "tempodb-go", VERSION)
 	//Useful shorcut when you don't want to specify optional Filter parameters.
 	NullFilter = NewFilter()
 )
