@@ -2,14 +2,14 @@ package tempodb
 
 import (
 	"io"
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 	"time"
+	"bytes"
+	"errors"
+	"net/url"
+	"net/http"
+	"io/ioutil"
+	"encoding/json"
 )
 
 const (
