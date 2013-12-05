@@ -56,6 +56,7 @@ func NewClient(key string, secret string) *Client {
 func (client *Client) GetSeries(filter *Filter) ([]*Series, error) {
 	url := client.buildUrl("/series?", filter.Url().Encode())
 	resp, err := client.makeRequest(url, "GET", []byte{})
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +92,7 @@ func (client *Client) CreateSeries(key string) (*Series, error) {
 	}
 	url := client.buildUrl("/series/", "")
 	resp, err := client.makeRequest(url, "POST", reqBody)
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +138,7 @@ func (client *Client) UpdateSeries(series *Series) (*Series, error) {
 		return nil, err
 	}
 	resp, err := client.makeRequest(url, "PUT", b)
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +181,7 @@ func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 		return err
 	}
 	resp, err := client.makeRequest(url, "POST", b)
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -197,6 +201,7 @@ func (client *Client) WriteBulk(ts time.Time, data []BulkPoint) error {
 func (client *Client) Read(start time.Time, end time.Time, filter *Filter, readOpts *ReadOptions) ([]*DataSet, error) {
 	url := client.buildUrl("/data?", urlMerge(client.encodeTimes(start, end), filter.Url(), readOpts.Url()).Encode())
 	resp, err := client.makeRequest(url, "GET", []byte{})
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -249,6 +254,7 @@ func (client *Client) IncrementBulk(ts time.Time, data []BulkPoint) error {
 		return err
 	}
 	resp, err := client.makeRequest(url, "POST", b)
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -278,6 +284,7 @@ func (client *Client) readSeries(series_type string, seriesVal string, start tim
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
 	url := client.buildUrl(endpointUrl, urlMerge(client.encodeTimes(start, end), readOpts.Url()).Encode())
 	resp, err := client.makeRequest(url, "GET", []byte{})
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -310,6 +317,7 @@ func (client *Client) writeSeries(series_type string, seriesVal string, data []*
 	}
 	url := client.buildUrl(endpointUrl, "")
 	resp, err := client.makeRequest(url, "POST", b)
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -334,6 +342,7 @@ func (client *Client) incrementSeries(seriesType string, seriesVal string, data 
 	}
 	url := client.buildUrl(endpointUrl, "")
 	resp, err := client.makeRequest(url, "POST", b)
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -351,6 +360,7 @@ func (client *Client) incrementSeries(seriesType string, seriesVal string, data 
 
 func (client *Client) deleteSeries(url string) (*DeleteSummary, error) {
 	resp, err := client.makeRequest(url, "DELETE", []byte{})
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -375,6 +385,7 @@ func (client *Client) deleteDataFromSeries(series_type string, seriesVal string,
 	endpointUrl := fmt.Sprintf("/series/%s/%s/data/?", series_type, url.QueryEscape(seriesVal))
 	url := client.buildUrl(endpointUrl, client.encodeTimes(start, end).Encode())
 	resp, err := client.makeRequest(url, "DELETE", []byte{})
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
